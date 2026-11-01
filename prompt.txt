@@ -1,0 +1,150 @@
+# PROMPT UTAMA — PENGEMBANGAN GYMSLOT
+
+Saya ingin mengembangkan aplikasi bernama **GymSlot**. Sebelum melakukan perubahan atau menulis kode apa pun, baca dan pahami dua dokumen utama berikut:
+
+1. `PRD.md`
+2. `TECHNICAL_DOCUMENTATION.md`
+
+Kedua dokumen tersebut merupakan sumber acuan utama dalam pengembangan aplikasi GymSlot.
+
+## 1. Pahami Dokumentasi
+
+Baca kedua dokumen secara menyeluruh.
+
+Pastikan kamu memahami:
+- Tujuan dan ruang lingkup aplikasi.
+- Target pengguna dan role.
+- Arsitektur sistem.
+- Struktur database Google Sheets.
+- Alur autentikasi dan otorisasi.
+- Integrasi Google Drive dan Google Sheets.
+- Business logic setiap fitur.
+- API contract.
+- Keamanan dan multi-tenant.
+- Tahapan implementasi.
+- Kriteria penerimaan setiap fitur.
+
+Jangan langsung melakukan coding sebelum memahami dokumentasi.
+
+## 2. Teknologi yang Wajib Digunakan
+
+Ikuti arsitektur berikut:
+
+- Frontend: Flutter.
+- Backend: Google Apps Script.
+- Penyimpanan data: Google Sheets.
+- Autentikasi: Google Sign-In.
+- Integrasi: Google Drive API dan Google Sheets API.
+
+**Larangan:**
+- Jangan menggunakan MySQL.
+- Jangan menggunakan Golang.
+- Jangan menggunakan Appwrite Database.
+- Jangan mengganti Google Apps Script dengan backend lain tanpa persetujuan.
+- Jangan mengakses Google Sheets secara langsung dari Flutter.
+
+## 3. Tahap Pertama: Audit Project
+
+Sebelum coding, periksa repository yang tersedia.
+
+Identifikasi:
+- Struktur folder.
+- File yang sudah tersedia.
+- Teknologi dan dependency yang sudah digunakan.
+- Fitur yang sudah selesai.
+- Fitur yang belum selesai.
+- Potensi konflik dengan dokumentasi.
+- Konfigurasi yang masih diperlukan.
+
+Jangan menghapus atau menimpa implementasi yang sudah ada tanpa alasan yang jelas.
+
+## 4. Buat Implementation Plan
+
+Setelah membaca dokumentasi dan memeriksa project, buat rencana implementasi berdasarkan fase:
+
+1. Phase 0 — Technical Feasibility / Proof of Concept.
+2. Phase 1 — Foundation.
+3. Phase 2 — Gym Onboarding.
+4. Phase 3 — Core Management.
+5. Phase 4 — Booking.
+6. Phase 5 — Attendance.
+7. Phase 6 — Dashboard.
+8. Phase 7 — Security and Testing.
+9. Phase 8 — Future Features.
+
+Jelaskan tujuan, pekerjaan, file yang akan dibuat, dependency, dan kriteria keberhasilan setiap fase.
+
+## 5. Ketentuan Implementasi
+
+- Kerjakan satu fase dalam satu waktu.
+- Jangan langsung membangun seluruh aplikasi.
+- Prioritaskan Phase 0.
+- Jangan melewati validasi teknis integrasi Google.
+- Terapkan pemisahan UI, business logic, dan data access.
+- Terapkan error handling.
+- Terapkan validasi input.
+- Terapkan permission di backend.
+- Pastikan isolasi data antar-gym.
+- Gunakan struktur kode yang modular dan mudah dikembangkan.
+- Hindari duplikasi kode.
+- Gunakan naming convention yang konsisten.
+- Jangan membuat data dummy seolah-olah data produksi.
+
+Jika menemukan kebutuhan yang belum dijelaskan dalam dokumentasi, jangan membuat keputusan sepihak. Laporkan terlebih dahulu dan minta konfirmasi.
+
+## 6. Standar Keamanan
+
+Berikan perhatian khusus terhadap:
+- Validasi Google ID Token.
+- Session management.
+- OAuth access dan refresh token.
+- Penyimpanan kredensial.
+- Authorization dan role permission.
+- Tenant isolation.
+- Booking concurrency.
+- Idempotency.
+- Rate limiting.
+- Audit logging.
+
+Jangan mengklaim sistem aman sebelum pengujian dilakukan.
+
+Jika Google Apps Script tidak mampu memenuhi persyaratan keamanan atau konsistensi tertentu, jelaskan risiko dan alternatifnya sebelum mengubah arsitektur.
+
+## 7. Dokumentasi Pengembangan
+
+Setiap kali menyelesaikan satu fase:
+
+- Perbarui dokumentasi teknis jika ada perubahan.
+- Catat file yang dibuat.
+- Catat file yang dimodifikasi.
+- Jelaskan implementasi yang selesai.
+- Jelaskan pengujian yang dilakukan.
+- Laporkan error dan keterbatasan.
+- Catat pekerjaan yang belum selesai.
+
+Jangan mengubah PRD atau keputusan produk tanpa persetujuan.
+
+## 8. Tugas Pertama
+
+Untuk saat ini, **JANGAN MENULIS KODE TERLEBIH DAHULU.**
+
+Lakukan tiga hal berikut:
+
+1. Baca `PRD.md` dan `TECHNICAL_DOCUMENTATION.md` secara menyeluruh.
+2. Audit struktur repository GymSlot.
+3. Buat laporan pemahaman dokumentasi dan implementation plan.
+
+Laporan pertama harus berisi:
+
+- Ringkasan pemahaman produk.
+- Arsitektur sistem yang dipahami.
+- Struktur data yang akan digunakan.
+- Alur autentikasi dan integrasi Google.
+- Risiko teknis yang ditemukan.
+- Hasil audit repository.
+- Implementation plan per fase.
+- Daftar kebutuhan yang masih memerlukan keputusan.
+
+Tunggu persetujuan saya sebelum memulai implementasi.
+
+**Prinsip utama: Dokumentasi adalah acuan pengembangan. Jangan berasumsi, jangan mengubah arsitektur sepihak, dan jangan mengimplementasikan fitur di luar ruang lingkup yang telah disetujui.**
