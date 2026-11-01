@@ -147,4 +147,84 @@ Laporan pertama harus berisi:
 
 Tunggu persetujuan saya sebelum memulai implementasi.
 
+
+## 9. Anti-AI Slop dan Standar Kualitas Kode
+
+Di dalam repository GymSlot nantinya akan tersedia folder:
+
+`anti-slop-main/`
+
+Folder tersebut berasal dari repository GitHub:
+
+https://github.com/miqdadbadjuber/anti-slop
+
+Sebelum melakukan implementasi apa pun, WAJIB membaca dan memahami isi folder `anti-slop-main/` secara menyeluruh.
+
+### 9.1 Tujuan
+
+Gunakan anti-slop sebagai pedoman untuk mencegah implementasi kode yang memiliki kualitas rendah, tidak konsisten, terlalu kompleks, atau hanya terlihat benar tetapi sebenarnya tidak menyelesaikan masalah.
+
+Prioritaskan:
+- Kode yang benar-benar berfungsi.
+- Implementasi yang sederhana dan mudah dipahami.
+- Struktur kode yang konsisten.
+- Pemisahan tanggung jawab setiap komponen.
+- Penamaan variabel, fungsi, class, dan file yang jelas.
+- Reusability tanpa abstraksi yang berlebihan.
+- Error handling yang relevan.
+- Tidak membuat kode hanya untuk memenuhi tampilan atau menghasilkan kesan bahwa fitur sudah selesai.
+
+### 9.2 Ketentuan Penggunaan
+
+1. Pelajari seluruh dokumentasi dan aturan yang tersedia di `anti-slop-main/`.
+2. Identifikasi prinsip-prinsip yang relevan dengan Flutter, Google Apps Script, Google Sheets, dan integrasi Google.
+3. Terapkan prinsip tersebut selama proses pengembangan GymSlot.
+4. Hindari overengineering, unnecessary abstraction, redundant code, dan premature optimization.
+5. Jangan membuat fungsi, class, service, atau dependency yang sebenarnya tidak diperlukan.
+6. Jangan menggunakan placeholder implementation seolah-olah fitur sudah berfungsi.
+7. Jangan membuat mock response atau dummy data sebagai pengganti integrasi yang seharusnya sudah berjalan.
+8. Jangan menyembunyikan error menggunakan fallback yang tidak memiliki dasar teknis.
+9. Jangan membuat komentar atau dokumentasi yang hanya mengulang kode tanpa memberikan informasi tambahan.
+10. Pastikan setiap implementasi memiliki alasan teknis yang jelas.
+
+### 9.3 Prioritas Aturan
+
+Jika terdapat perbedaan atau konflik antara sumber acuan, gunakan urutan prioritas berikut:
+
+1. Instruksi eksplisit dari pemilik project.
+2. PRD.md — keputusan dan ruang lingkup produk.
+3. TECHNICAL_DOCUMENTATION.md — arsitektur dan keputusan teknis.
+4. anti-slop-main/ — pedoman kualitas kode dan praktik pengembangan.
+
+Anti-slop tidak boleh dijadikan alasan untuk mengubah arsitektur, menghilangkan fitur yang diwajibkan PRD, atau mengabaikan persyaratan keamanan.
+
+Jika menemukan aturan anti-slop yang bertentangan dengan kebutuhan teknis GymSlot, laporkan konflik tersebut terlebih dahulu dan minta persetujuan sebelum mengambil keputusan.
+
+### 9.4 Validasi Kualitas
+
+Sebelum menyatakan suatu fase selesai, lakukan evaluasi:
+
+- Apakah implementasi benar-benar memenuhi kebutuhan?
+- Apakah ada kode yang tidak diperlukan?
+- Apakah terdapat duplikasi logic?
+- Apakah terdapat hardcoded value yang seharusnya menjadi konfigurasi?
+- Apakah error ditangani dengan benar?
+- Apakah implementasi sesuai dengan arsitektur?
+- Apakah terdapat potensi masalah keamanan?
+- Apakah kode mudah dipelihara dan dikembangkan?
+
+Jangan mengklaim kode sudah memenuhi standar anti-slop tanpa melakukan pemeriksaan.
+
+### 9.5 Jika Folder Belum Tersedia
+
+Jika folder `anti-slop-main/` belum tersedia di repository:
+
+- Jangan mengasumsikan isi atau aturan di dalamnya.
+- Jangan mengarang prinsip yang diklaim berasal dari repository tersebut.
+- Catat bahwa pedoman anti-slop belum dapat diaudit.
+- Lanjutkan hanya pekerjaan audit yang tidak bergantung pada pedoman tersebut.
+- Jangan memulai implementasi sebelum folder tersedia dan sudah ditinjau.
+
+**Prinsip utama:** Jangan menghasilkan kode hanya agar terlihat produktif. Setiap baris kode harus memiliki tujuan, alasan teknis, dan kontribusi nyata terhadap kebutuhan GymSlot.
+
 **Prinsip utama: Dokumentasi adalah acuan pengembangan. Jangan berasumsi, jangan mengubah arsitektur sepihak, dan jangan mengimplementasikan fitur di luar ruang lingkup yang telah disetujui.**
