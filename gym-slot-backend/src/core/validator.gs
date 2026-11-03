@@ -1,48 +1,49 @@
 /**
  * validator.gs
- * Validasi input terpusat. Validasi dasar di sini, validasi final tetap di backend.
- * Flutter hanya melakukan validasi awal; backend tidak mempercayai input klien.
+ * Validasi input untuk mencegah error dan memastikan data konsisten.
  */
 
 var Validator = (function () {
-  function isNonEmptyString(value) {
-    return typeof value === 'string' && value.trim().length > 0;
-  }
-
-  function isObject(value) {
-    return value !== null && typeof value === 'object' && !Array.isArray(value);
-  }
-
-  function isIsoDateString(value) {
-    if (typeof value !== 'string') return false;
-    return !isNaN(Date.parse(value));
-  }
-
-  function isUuid(value) {
-    return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-  }
-
-  function isEmail(value) {
-    return typeof value === 'string' &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  /**
+   * Memeriksa apakah value tidak null/undefined/kosong.
+   */
+  function required(value, fieldName) {
+    if (value === null || value === undefined || value === '') {
+      throw Error('VALIDATION_ERROR', fieldName + ' wajib diisi');
+    }
   }
 
   /**
-   * Membangun daftar error validasi.
-   * @param {Array.<{field:string, message:string}>} checks - hasil false berarti gagal.
-   * Dipanggil manual per field.
+   * Memeriksa apakah value adalah string.
    */
-  function summarize(errors) {
-    if (errors.length === 0) return null;
-    return { fields: errors };
+  function isString(value, fieldName) {
+    if (typeof value !== 'string') {
+      throw Error('VALIDATION_ERROR', fieldName + ' harus berupa string');
+    }
+  }
+
+  /**
+   * Memeriksa apakah value ada dalam list yang diperbolehkan.
+   */
+  function isIn(value, allowed, fieldName) {
+    if (allowed.indexOf(value) === -1) {
+      throw Error('VALIDATION_ERROR', fieldName + ' tidak valid');
+    }
+  }
+
+  /**
+   * Memeriksa format email sederhana.
+   */
+  function isEmail(value, fieldName) {
+    if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      throw Error('VALIDATION_ERROR', fieldName + ' format email tidak valid');
+    }
   }
 
   return {
-    isNonEmptyString: isNonEmptyString,
-    isObject: isObject,
-    isIsoDateString: isIsoDateString,
-    isUuid: isUuid,
+    required: required,
+    isString: isString,
+    isIn: isIn,
     isEmail: isEmail,
-    summarize: summarize,
   };
 })();

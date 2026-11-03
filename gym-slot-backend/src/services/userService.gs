@@ -46,6 +46,14 @@ var UserService = (function () {
     return { user: user, is_new: true };
   }
 
+  /**
+   * Mencari user berdasarkan user_id.
+   */
+  function findByUserId(userId) {
+    if (!userId) return null;
+    return ControlRepository.findOne('Users', { user_id: userId });
+  }
+
   /** Memperbarui kolom user yang diizinkan pada baris yang sudah ada. */
   function updateUser(userId, fields) {
     // PoC sederhana: cari baris dan tulis ulang kolom yang berubah.
@@ -64,10 +72,6 @@ var UserService = (function () {
         break;
       }
     }
-  }
-
-  function findByUserId(userId) {
-    return ControlRepository.findOne('Users', { user_id: userId });
   }
 
   /** Menggabungkan objek (untuk nilai default). */

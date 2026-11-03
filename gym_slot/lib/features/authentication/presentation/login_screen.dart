@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
+import 'package:gym_slot/core/theme/app_colors.dart';
+import 'package:gym_slot/core/theme/app_spacing.dart';
+import 'package:gym_slot/models/user.dart';
+import 'package:gym_slot/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 /// Layar login GymSlot. (Lihat desain.md 8.2.)
 /// Latar hitam penuh, logo putih dengan aksen merah, satu tombol utama merah.
@@ -20,11 +22,32 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     try {
-      // PoC: integrasi backend akan dihubungkan di sini.
-      // Login Google memakai GoogleAuthService, lalu ID token dikirim
-      // ke action 'auth.google' lewat ApiClient.
-      // Fase ini menunggu konfigurasi platform Google.
+      // TODO: Implement actual Google Sign-In
+      // For now, simulate login
       await Future.delayed(const Duration(milliseconds: 800));
+
+      // Mock login for development
+      if (mounted) {
+        final authProvider = context.read<AuthProvider>();
+        authProvider.signInWithUser(
+          User(
+            userId: 'demo-user-123',
+            googleSub: 'google-sub-123',
+            email: 'demo@example.com',
+            fullName: 'Demo User',
+            accountStatus: 'Active',
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+          ),
+          'demo-token',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

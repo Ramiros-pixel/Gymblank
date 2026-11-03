@@ -1,50 +1,160 @@
 /**
  * settings.gs
- * Konfigurasi environment GymSlot. Bisa diubah antar Development/Staging/Production.
- * Jangan letakkan secret (refresh token, client secret) di file ini.
- *
- * Nilai yang wajib diisi saat deploy (bukan di commit):
- *   Settings.setGoogleClientId('<CLIENT_ID>')
- *   Settings.setGoogleClientSecret('<CLIENT_SECRET>')
- *   Settings.setControlSpreadsheetId('<SHEET_ID>')
+ * Konfigurasi yang bisa berubah antar environment.
+ * Jangan hardcode secret di constants.gs.
  */
 
 var Settings = (function () {
-  var props = PropertiesService.getScriptProperties();
-
-  var PREFIX = 'gymslot.';
-
-  function get(key) {
-    return props.getProperty(PREFIX + key);
+  /**
+   * Mengambil ID Control Spreadsheet dari ScriptProperties.
+   * Setup sekali oleh admin menggunakan setup_control.gs.
+   */
+  function getControlSpreadsheetId() {
+    return PropertiesService.getScriptProperties()
+      .getProperty('CONTROL_SPREADSHEET_ID');
   }
 
-  function set(key, value) {
-    if (value === null || value === undefined) {
-      props.deleteProperty(PREFIX + key);
-    } else {
-      props.setProperty(PREFIX + key, String(value));
+  /**
+   * Mengatur ID Control Spreadsheet.
+   * Panggil sekali setelah spreadsheet dibuat.
+   */
+  function setControlSpreadsheetId(id) {
+    PropertiesService.getScriptProperties()
+      .setProperty('CONTROL_SPREADSHEET_ID', id);
+  }
+
+  /**
+   * Mengambil Google OAuth Client ID.
+   * Harus sama dengan client ID yang digunakan Flutter.
+   */
+  function getGoogleClientId() {
+    return PropertiesService.getScriptProperties()
+      .getProperty('GOOGLE_CLIENT_ID');
+  }
+
+  /**
+   * Mengatur Google OAuth Client ID.
+   */
+  function setGoogleClientId(clientId) {
+    PropertiesService.getScriptProperties()
+      .setProperty('GOOGLE_CLIENT_ID', clientId);
+  }
+
+  /**
+   * Mengambil Google OAuth Client Secret.
+   * Dibutuhkan untuk token exchange (authorization code flow).
+   */
+  function getGoogleClientSecret() {
+    return PropertiesService.getScriptProperties()
+      .getProperty('GOOGLE_CLIENT_SECRET');
+  }
+
+  /**
+   * Mengatur Google OAuth Client Secret.
+   * Simpan hanya di ScriptProperties, tidak di source code.
+   */
+  function setGoogleClientSecret(clientSecret) {
+    PropertiesService.getScriptProperties()
+      .setProperty('GOOGLE_CLIENT_SECRET', clientSecret);
+  }
+
+  /**
+   * Mengambil Web App URL (untuk OAuth callback).
+   */
+  function getWebAppUrl() {
+    return PropertiesService.getScriptProperties()
+      .getProperty('WEB_APP_URL');
+  }
+
+  /**
+   * Mengatur Web App URL.
+   */
+  function setWebAppUrl(url) {
+    PropertiesService.getScriptProperties()
+      .setProperty('WEB_APP_URL', url);
+  }
+
+  /**
+   * Mengambil OAuth access token.
+   */
+  function getOAuthAccessToken() {
+    return PropertiesService.getScriptProperties()
+      .getProperty('OAUTH_ACCESS_TOKEN');
+  }
+
+  /**
+   * Mengatur OAuth access token.
+   */
+  function setOAuthAccessToken(token) {
+    PropertiesService.getScriptProperties()
+      .setProperty('OAUTH_ACCESS_TOKEN', token);
+  }
+
+  /**
+   * Mengambil OAuth refresh token.
+   */
+  function getOAuthRefreshToken() {
+    return PropertiesService.getScriptProperties()
+      .getProperty('OAUTH_REFRESH_TOKEN');
+  }
+
+  /**
+   * Mengatur OAuth refresh token.
+   * PERINGATAN: ScriptProperties bukan Secret Manager khusus.
+   * Evaluasi risiko untuk produksi.
+   */
+  function setOAuthRefreshToken(token) {
+    PropertiesService.getScriptProperties()
+      .setProperty('OAUTH_REFRESH_TOKEN', token);
+  }
+
+  /**
+   * Mengatur access token, refresh token, dan expires_at sekaligus.
+   */
+  function setOAuthTokens(accessToken, refreshToken, expiresAt) {
+    setOAuthAccessToken(accessToken);
+    setOAuthRefreshToken(refreshToken || '');
+    if (expiresAt) {
+      PropertiesService.getScriptProperties()
+        .setProperty('OAUTH_EXPIRES_AT', String(expiresAt));
     }
   }
 
+  /**
+   * Menghapus semua token OAuth (disconnect).
+   */
+  function clearOAuthTokens() {
+    var props = PropertiesService.getScriptProperties();
+    props.deleteProperty('OAUTH_ACCESS_TOKEN');
+    props.deleteProperty('OAUTH_REFRESH_TOKEN');
+    props.deleteProperty('OAUTH_EXPIRES_AT');
+  }
+
+  /**
+   * Mengecek apakah token masih berlaku.
+   */
+  function isTokenValid() {
+    var expiresAt = PropertiesService.getScriptProperties()
+      .getProperty('OAUTH_EXPIRES_AT');
+    if (!expiresAt) return false;
+    return Number(expiresAt) > Date.now();
+  }
+
   return {
-    /** Google OAuth 2.0 Client ID untuk login & integrasi Drive/Sheets. */
-    getGoogleClientId: function () { return get('google_client_id'); },
-    setGoogleClientId: function (v) { set('google_client_id', v); },
-
-    /** Client secret dipakai alur authorization-code. Disimpan di ScriptProperties (PoC). */
-    getGoogleClientSecret: function () { return get('google_client_secret'); },
-    setGoogleClientSecret: function (v) { set('google_client_secret', v); },
-
-    /** ID Control Spreadsheet (GymSlot_Control). */
-    getControlSpreadsheetId: function () { return get('control_spreadsheet_id'); },
-    setControlSpreadsheetId: function (v) { set('control_spreadsheet_id', v); },
-
-    /** URL Web App yang dipakai OAuth redirect / callback. */
-    getWebAppUrl: function () { return get('web_app_url'); },
-    setWebAppUrl: function (v) { set('web_app_url', v); },
-
-    /** Environment: development | staging | production. */
-    getEnvironment: function () { return get('environment') || 'development'; },
-    setEnvironment: function (v) { set('environment', v); },
+    getControlSpreadsheetId: getControlSpreadsheetId,
+    setControlSpreadsheetId: setControlSpreadsheetId,
+    getGoogleClientId: getGoogleClientId,
+    setGoogleClientId: setGoogleClientId,
+    getGoogleClientSecret: getGoogleClientSecret,
+    setGoogleClientSecret: setGoogleClientSecret,
+    getWebAppUrl: getWebAppUrl,
+    setWebAppUrl: setWebAppUrl,
+    getOAuthAccessToken: getOAuthAccessToken,
+    setOAuthAccessToken: setOAuthAccessToken,
+    getOAuthRefreshToken: getOAuthRefreshToken,
+    setOAuthRefreshToken: setOAuthRefreshToken,
+    setOAuthTokens: setOAuthTokens,
+    clearOAuthTokens: clearOAuthTokens,
+    isTokenValid: isTokenValid,
   };
 })();

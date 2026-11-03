@@ -11,7 +11,8 @@ class ApiConfig {
 
   /// OAuth Client ID Google untuk login.
   /// Set lewat: flutter run --dart-define=GYMSLOT_GOOGLE_CLIENT_ID=...
-  static const String googleClientId = String.fromEnvironment('GYMSLOT_GOOGLE_CLIENT_ID');
+  static const String googleClientId =
+      String.fromEnvironment('GYMSLOT_GOOGLE_CLIENT_ID');
 
   static bool get isConfigured =>
       apiUrl.isNotEmpty && googleClientId.isNotEmpty;
@@ -22,27 +23,23 @@ class ApiConfig {
 /// sesuai keterbatasan Apps Script.
 class ApiClient {
   final String baseUrl;
-  final String _requestId;
 
-  ApiClient(this.baseUrl) : _requestId = _makeRequestId();
-
-  static String _makeRequestId() {
-    return DateTime.now().microsecondsSinceEpoch.toString();
-  }
+  ApiClient(this.baseUrl);
 
   /// Mengirim action ke backend dan mengembalikan respons JSON.
   Future<Map<String, dynamic>> call(
     String action,
     Map<String, dynamic> payload,
     {String? sessionToken, String? idToken}) async {
+    final requestId = DateTime.now().microsecondsSinceEpoch.toString();
     final body = <String, dynamic>{
       'action': action,
       'version': 'v1',
-      'request_id': _requestId,
+      'request_id': requestId,
       'payload': payload,
-      'auth': {
-        if (sessionToken != null) 'session_token': sessionToken,
-        if (idToken != null) 'id_token': idToken,
+      'auth': <String, dynamic>{
+        'session_token': sessionToken,
+        'id_token': idToken,
       },
     };
 
