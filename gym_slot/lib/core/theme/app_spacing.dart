@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Jarak, radius, dan dimensi standar GymSlot. (Lihat desain.md bagian 5.)
 class AppSpacing {
   // Grid jarak 4pt.
@@ -15,7 +13,7 @@ class AppSpacing {
   static const double radiusCard = 16;
   static const double radiusButton = 12;
   static const double radiusInput = 12;
-  static const double radiusChip = 999; // pill
+  static const double radiusChip = 10;
 
   // Ukuran area sentuh minimum (desain.md: 48 dp).
   static const double minTapTarget = 48;

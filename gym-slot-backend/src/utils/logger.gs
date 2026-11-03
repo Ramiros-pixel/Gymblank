@@ -1,37 +1,45 @@
 /**
  * logger.gs
- * Audit logging terpusat. Mencatat aksi penting ke Control Sheet (tab AuditLogs).
- * Jangan pernah mencatat refresh token, ID token, atau secret lain ke log.
+ * Logger untuk audit trail dan debugging.
  */
 
 var Logger = (function () {
   /**
-   * Menulis baris audit ke Control Spreadsheet.
-   * @param {string} actorUserId - user_id pelaku (bisa kosong jika belum dikenal).
-   * @param {string} action - Nama aksi, mis. 'auth.google'.
-   * @param {string} resourceType - Jenis sumber, mis. 'user', 'gym'.
-   * @param {string} resourceId - ID sumber.
-   * @param {string} detail - Detail singkat (tanpa secret).
+   * Mencatat audit log ke tab AuditLogs di Control Spreadsheet.
+   * @param {string} actorUserId - ID pengguna yang melakukan aksi.
+   * @param {string} action - action yang dilakukan.
+   * @param {string} resourceType - tipe resource (gym, user, dll).
+   * @param {string} resourceId - ID resource yang dipengaruhi.
+   * @param {string} detail - detail tambahan.
    */
   function audit(actorUserId, action, resourceType, resourceId, detail) {
     try {
-      var sheet = SpreadsheetApp.openById(Settings.getControlSpreadsheetId())
-        .getSheetByName('AuditLogs');
-      if (!sheet) return;
-      sheet.appendRow([
-        Uuid.v4(),
-        actorUserId || '',
-        action,
-        resourceType || '',
-        resourceId || '',
-        detail || '',
-        DateTimeHelper.nowIso(),
-      ]);
+      ControlRepository.insertRow('AuditLogs', {
+        log_id: Uuid.v4(),
+        actor_user_id: actorUserId || '',
+        action: action || '',
+        resource_type: resourceType || '',
+        resource_id: resourceId || '',
+        detail: detail || '',
+        created_at: DateTimeHelper.nowIso(),
+      });
     } catch (e) {
-      // Kegagalan audit tidak boleh menggagalkan operasi utama.
-      Logger.log('Audit gagal ditulis: ' + action);
+      // Jangan biarkan error logging mengganggu aliran utama.
+      Logger.log('Audit log failed: ' + e.message);
     }
   }
 
-  return { audit: audit };
+  function log(message) {
+    console.log('[GymSlot] ' + message);
+  }
+
+  function error(message) {
+    console.error('[GymSlot] ERROR: ' + message);
+  }
+
+  return {
+    audit: audit,
+    log: log,
+    error: error,
+  };
 })();

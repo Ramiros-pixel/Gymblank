@@ -34,18 +34,34 @@ var Router = (function () {
 
   function dispatch(action, body, requestId) {
     switch (action) {
+      // Authentication
       case 'auth.google':
         return handleAuthGoogle(body, requestId);
       case 'auth.me':
         return handleAuthMe(body, requestId);
       case 'auth.logout':
         return handleAuthLogout(body, requestId);
+
+      // Gym
+      case 'gyms.create':
+        return handleGymsCreate(body, requestId);
+      case 'gyms.list':
+        return handleGymsList(body, requestId);
+      case 'gyms.detail':
+        return handleGymsDetail(body, requestId);
+      case 'gyms.update':
+        return handleGymsUpdate(body, requestId);
+
+      // Membership
+      case 'memberships.list':
+        return handleMembershipsList(body, requestId);
+
       default:
         return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action tidak dikenal');
     }
   }
 
-  // ---------- handler ----------
+  // ---------- Authentication Handlers ----------
 
   function handleAuthGoogle(body, requestId) {
     var idToken = body.auth && body.auth.id_token;
@@ -86,7 +102,56 @@ var Router = (function () {
     return Response.ok(requestId, {}, 'Logout berhasil');
   }
 
-  /** Memetakan pesan Error ke kode error terstandar. */
+  // ---------- Gym Handlers ----------
+
+  function handleGymsCreate(body, requestId) {
+    var membership = Authorization.checkOwner(body);
+    var createData = body.payload || {};
+    var result = GymService.create(createData, membership.user_id);
+    Logger.audit(membership.user_id, 'gyms.create', 'gym', result.gym.gym_id, 'create');
+    return Response.ok(requestId, { gym: result.gym }, 'Gym berhasil dibuat');
+  }
+
+  function handleGymsList(body, requestId) {
+    var sessionData = Authentication.getSession(body);
+    if (!sessionData) {
+      return Response.fail(requestId, Errors.CODES.AUTH_EXPIRED, 'Sesi berakhir. Silakan masuk lagi.');
+    }
+    var gyms = GymService.listByUser(sessionData.user_id);
+    return Response.ok(requestId, { gyms: gyms }, 'Daftar gym');
+  }
+
+  function handleGymsDetail(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var gym = GymService.findByGymId(gymId);
+    if (!gym) {
+      return Response.fail(requestId, Errors.CODES.GYM_NOT_FOUND, 'Gym tidak ditemukan');
+    }
+    return Response.ok(requestId, { gym: gym }, 'Detail gym');
+  }
+
+  function handleGymsUpdate(body, requestId) {
+    var membership = Authorization.checkAdminOrOwner(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var updateData = body.payload || {};
+    var gym = GymService.update(gymId, updateData, membership.user_id);
+    Logger.audit(membership.user_id, 'gyms.update', 'gym', gymId, 'update');
+    return Response.ok(requestId, { gym: gym }, 'Gym berhasil diperbarui');
+  }
+
+  // ---------- Membership Handlers ----------
+
+  function handleMembershipsList(body, requestId) {
+    var sessionData = Authentication.getSession(body);
+    if (!sessionData) {
+      return Response.fail(requestId, Errors.CODES.AUTH_EXPIRED, 'Sesi berakhir. Silakan masuk lagi.');
+    }
+    var memberships = MembershipService.listByUser(sessionData.user_id);
+    return Response.ok(requestId, { memberships: memberships }, 'Daftar membership');
+  }
+
+  /** Memetakan pesan Error ke kode error terstandard. */
   function mapErrorCode(e) {
     var msg = e && e.message ? String(e.message) : '';
     var known = [
