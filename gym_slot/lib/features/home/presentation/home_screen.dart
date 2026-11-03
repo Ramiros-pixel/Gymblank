@@ -141,21 +141,33 @@ class _EmptyGymState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.fitness_center, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
+          const Icon(Icons.fitness_center, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
             'Belum ada gym',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Anda belum bergabung dengan gym manapun.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: const TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/register-gym');
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Daftar Gym Baru'),
+            ),
           ),
         ],
       ),

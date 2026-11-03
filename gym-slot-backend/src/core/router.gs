@@ -56,6 +56,18 @@ var Router = (function () {
       case 'memberships.list':
         return handleMembershipsList(body, requestId);
 
+      // Integrations (Google Drive/Sheets)
+      case 'integrations.connect':
+        return handleIntegrationsConnect(body, requestId);
+      case 'integrations.callback':
+        return handleIntegrationsCallback(body, requestId);
+      case 'integrations.status':
+        return handleIntegrationsStatus(body, requestId);
+      case 'integrations.create-spreadsheet':
+        return handleIntegrationsCreateSpreadsheet(body, requestId);
+      case 'integrations.disconnect':
+        return handleIntegrationsDisconnect(body, requestId);
+
       default:
         return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action tidak dikenal');
     }
@@ -149,6 +161,46 @@ var Router = (function () {
     }
     var memberships = MembershipService.listByUser(sessionData.user_id);
     return Response.ok(requestId, { memberships: memberships }, 'Daftar membership');
+  }
+
+  // ---------- Integrations Handlers ----------
+
+  function handleIntegrationsConnect(body, requestId) {
+    var sessionData = Authentication.getSession(body);
+    if (!sessionData) {
+      return Response.fail(requestId, Errors.CODES.AUTH_EXPIRED, 'Sesi berakhir. Silakan masuk lagi.');
+    }
+    var result = GoogleIntegrationService.startConnect(body);
+    return Response.ok(requestId, result, 'URL autorisasi siap');
+  }
+
+  function handleIntegrationsCallback(body, requestId) {
+    var result = GoogleIntegrationService.handleCallback(body);
+    return Response.ok(requestId, result, 'Koneksi Google Drive berhasil');
+  }
+
+  function handleIntegrationsStatus(body, requestId) {
+    var status = GoogleIntegrationService.getConnectionStatus();
+    return Response.ok(requestId, status, 'Status koneksi');
+  }
+
+  function handleIntegrationsCreateSpreadsheet(body, requestId) {
+    var sessionData = Authentication.getSession(body);
+    if (!sessionData) {
+      return Response.fail(requestId, Errors.CODES.AUTH_EXPIRED, 'Sesi berakhir. Silakan masuk lagi.');
+    }
+    var result = GoogleIntegrationService.createGymSpreadsheet(body);
+    Logger.audit(sessionData.user_id, 'integrations.create-spreadsheet', 'gym', body.payload.gym_id, 'create_spreadsheet');
+    return Response.ok(requestId, result, 'Spreadsheet gym berhasil dibuat');
+  }
+
+  function handleIntegrationsDisconnect(body, requestId) {
+    var sessionData = Authentication.getSession(body);
+    if (!sessionData) {
+      return Response.fail(requestId, Errors.CODES.AUTH_EXPIRED, 'Sesi berakhir. Silakan masuk lagi.');
+    }
+    var result = GoogleIntegrationService.disconnect();
+    return Response.ok(requestId, result, 'Koneksi Google Drive diputus');
   }
 
   /** Memetakan pesan Error ke kode error terstandard. */
