@@ -32,6 +32,7 @@ class AuthProvider extends ChangeNotifier {
       if (response['success'] == true) {
         _sessionToken = response['data']['session_token'];
         _user = User.fromJson(response['data']['user']);
+        SessionTokenHolder.token = _sessionToken;
         _saveSession(_sessionToken!);
         return true;
       } else {
@@ -69,6 +70,7 @@ class AuthProvider extends ChangeNotifier {
     }
     _sessionToken = null;
     _user = null;
+    SessionTokenHolder.token = null;
     _clearSession();
     notifyListeners();
   }

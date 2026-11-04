@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/features/management/presentation/gym_detail_screen.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
 import 'package:provider/provider.dart';
@@ -129,7 +130,11 @@ class _GymCard extends StatelessWidget {
         subtitle: Text(gym.gymStatus ?? 'Pending'),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
-          // TODO: Navigate to gym detail / main gym screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => GymDetailScreen(gym: gym),
+            ),
+          );
         },
       ),
     );
