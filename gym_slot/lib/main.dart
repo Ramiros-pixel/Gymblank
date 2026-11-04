@@ -4,6 +4,7 @@ import 'package:gym_slot/features/authentication/presentation/login_screen.dart'
 import 'package:gym_slot/features/home/presentation/home_screen.dart';
 import 'package:gym_slot/features/onboarding/presentation/register_gym_screen.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
+import 'package:gym_slot/providers/booking_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
 import 'package:gym_slot/providers/integration_provider.dart';
 import 'package:gym_slot/providers/management_provider.dart';
@@ -26,6 +27,7 @@ class GymSlotApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GymProvider(apiClient)),
         ChangeNotifierProvider(create: (_) => IntegrationProvider(apiClient)),
         ChangeNotifierProvider(create: (_) => ManagementProvider(apiClient)),
+        ChangeNotifierProvider(create: (_) => BookingProvider(apiClient)),
       ],
       child: MaterialApp(
         title: 'GymSlot',

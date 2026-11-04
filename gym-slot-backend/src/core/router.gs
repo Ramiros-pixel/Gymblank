@@ -98,6 +98,28 @@ var Router = (function () {
       case 'schedules.deactivate':
         return handleSchedulesDeactivate(body, requestId);
 
+      // Bookings
+      case 'bookings.list':
+        return handleBookingsList(body, requestId);
+      case 'bookings.my':
+        return handleBookingsMy(body, requestId);
+      case 'bookings.create':
+        return handleBookingsCreate(body, requestId);
+      case 'bookings.cancel':
+        return handleBookingsCancel(body, requestId);
+
+      // Attendance
+      case 'attendance.list':
+        return handleAttendanceList(body, requestId);
+      case 'attendance.checkin':
+        return handleAttendanceCheckin(body, requestId);
+
+      // Gym Settings
+      case 'settings.get':
+        return handleSettingsGet(body, requestId);
+      case 'settings.update':
+        return handleSettingsUpdate(body, requestId);
+
       default:
         return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action tidak dikenal');
     }
@@ -349,6 +371,105 @@ var Router = (function () {
     return Response.ok(requestId, { schedule: result }, 'Jadwal dinonaktifkan');
   }
 
+  // ---------- Bookings Handlers ----------
+
+  function handleBookingsList(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var bookings = BookingService.findAll(ssId);
+    return Response.ok(requestId, { bookings: bookings }, 'Daftar booking');
+  }
+
+  /** Riwayat booking milik member yang sedang login. */
+  function handleBookingsMy(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var member = MemberService.findByUserId(ssId, membership.user_id);
+    if (!member) {
+      return Response.ok(requestId, { bookings: [] }, 'Belum terdaftar sebagai anggota');
+    }
+    var all = BookingService.findAll(ssId);
+    var mine = [];
+    for (var i = 0; i < all.length; i++) {
+      if (String(all[i].member_id) === String(member.member_id)) {
+        mine.push(all[i]);
+      }
+    }
+    return Response.ok(requestId, { bookings: mine }, 'Booking Anda');
+  }
+
+  function handleBookingsCreate(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var data = body.payload || {};
+    var result = BookingService.create(ssId, data, membership.user_id);
+    return Response.ok(requestId, { booking: result }, 'Booking berhasil');
+  }
+
+  function handleBookingsCancel(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var bookingId = body.payload && body.payload.booking_id;
+
+    var booking = BookingService.findByBookingId(ssId, bookingId);
+    if (!booking) {
+      return Response.fail(requestId, Errors.CODES.BOOKING_NOT_FOUND, 'Booking tidak ditemukan');
+    }
+
+    // Member hanya boleh membatalkan booking miliknya sendiri.
+    var member = MemberService.findByUserId(ssId, membership.user_id);
+    var isOwn = member && String(booking.member_id) === String(member.member_id);
+    var isStaff = ['owner', 'admin', 'trainer'].indexOf(membership.role) !== -1;
+    if (!isOwn && !isStaff) {
+      return Response.fail(requestId, Errors.CODES.PERMISSION_DENIED, 'Tidak diizinkan');
+    }
+
+    var result = BookingService.cancel(ssId, bookingId, membership.user_id);
+    return Response.ok(requestId, { booking: result }, 'Booking dibatalkan');
+  }
+
+  // ---------- Attendance Handlers ----------
+
+  function handleAttendanceList(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var attendance = AttendanceService.findAll(ssId);
+    return Response.ok(requestId, { attendance: attendance }, 'Daftar kehadiran');
+  }
+
+  function handleAttendanceCheckin(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var data = body.payload || {};
+    var result = AttendanceService.checkIn(ssId, data, membership.user_id);
+    return Response.ok(requestId, { attendance: result }, 'Check-in berhasil');
+  }
+
+  // ---------- Gym Settings Handlers ----------
+
+  function handleSettingsGet(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var settings = GymSettingsService.getAll(ssId);
+    return Response.ok(requestId, { settings: settings }, 'Pengaturan gym');
+  }
+
+  function handleSettingsUpdate(body, requestId) {
+    var membership = Authorization.checkOwner(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var updates = body.payload && body.payload.settings ? body.payload.settings : {};
+    var result = GymSettingsService.update(ssId, updates, membership.user_id);
+    return Response.ok(requestId, { settings: result }, 'Pengaturan diperbarui');
+  }
+
   /** Memetakan pesan Error ke kode error terstandard. */
   function mapErrorCode(e) {
     var msg = e && e.message ? String(e.message) : '';
@@ -358,7 +479,7 @@ var Router = (function () {
       'CAPACITY_FULL', 'GOOGLE_DISCONNECTED', 'SHEET_NOT_FOUND',
       'RATE_LIMITED', 'CONTROL_SPREADSHEET_NOT_CONFIGURED',
       'MEMBER_NOT_FOUND', 'FACILITY_NOT_FOUND', 'SCHEDULE_NOT_FOUND',
-      'SCHEDULE_CONFLICT',
+      'SCHEDULE_CONFLICT', 'BOOKING_NOT_FOUND',
     ];
     for (var i = 0; i < known.length; i++) {
       if (msg.indexOf(known[i]) !== -1) return known[i];
