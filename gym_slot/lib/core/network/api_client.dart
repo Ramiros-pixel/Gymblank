@@ -2,6 +2,14 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+/// Penyimpan token sesi bersama.
+/// Diisi oleh AuthProvider setelah login, dipakai ApiClient untuk
+/// semua request berikutnya (termasuk yang tidak lewat AuthProvider).
+class SessionTokenHolder {
+  SessionTokenHolder._();
+  static String? token;
+}
+
 /// Konfigurasi API GymSlot. Dibaca dari --dart-define agar tidak hardcode.
 /// Tidak ada secret di sini.
 class ApiConfig {
@@ -29,8 +37,10 @@ class ApiClient {
   /// Mengirim action ke backend dan mengembalikan respons JSON.
   Future<Map<String, dynamic>> call(
     String action,
-    Map<String, dynamic> payload,
-    {String? sessionToken, String? idToken}) async {
+    Map<String, dynamic> payload, {
+    String? sessionToken,
+    String? idToken,
+  }) async {
     final requestId = DateTime.now().microsecondsSinceEpoch.toString();
     final body = <String, dynamic>{
       'action': action,
@@ -38,7 +48,7 @@ class ApiClient {
       'request_id': requestId,
       'payload': payload,
       'auth': <String, dynamic>{
-        'session_token': sessionToken,
+        'session_token': sessionToken ?? SessionTokenHolder.token,
         'id_token': idToken,
       },
     };

@@ -6,6 +6,7 @@ import 'package:gym_slot/features/onboarding/presentation/register_gym_screen.da
 import 'package:gym_slot/providers/auth_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
 import 'package:gym_slot/providers/integration_provider.dart';
+import 'package:gym_slot/providers/management_provider.dart';
 import 'package:provider/provider.dart';
 
 /// Entri utama aplikasi GymSlot.
@@ -24,6 +25,7 @@ class GymSlotApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider(apiClient)),
         ChangeNotifierProvider(create: (_) => GymProvider(apiClient)),
         ChangeNotifierProvider(create: (_) => IntegrationProvider(apiClient)),
+        ChangeNotifierProvider(create: (_) => ManagementProvider(apiClient)),
       ],
       child: MaterialApp(
         title: 'GymSlot',

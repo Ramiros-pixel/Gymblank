@@ -68,6 +68,36 @@ var Router = (function () {
       case 'integrations.disconnect':
         return handleIntegrationsDisconnect(body, requestId);
 
+      // Members
+      case 'members.list':
+        return handleMembersList(body, requestId);
+      case 'members.create':
+        return handleMembersCreate(body, requestId);
+      case 'members.update':
+        return handleMembersUpdate(body, requestId);
+      case 'members.deactivate':
+        return handleMembersDeactivate(body, requestId);
+
+      // Facilities
+      case 'facilities.list':
+        return handleFacilitiesList(body, requestId);
+      case 'facilities.create':
+        return handleFacilitiesCreate(body, requestId);
+      case 'facilities.update':
+        return handleFacilitiesUpdate(body, requestId);
+      case 'facilities.deactivate':
+        return handleFacilitiesDeactivate(body, requestId);
+
+      // Schedules
+      case 'schedules.list':
+        return handleSchedulesList(body, requestId);
+      case 'schedules.create':
+        return handleSchedulesCreate(body, requestId);
+      case 'schedules.update':
+        return handleSchedulesUpdate(body, requestId);
+      case 'schedules.deactivate':
+        return handleSchedulesDeactivate(body, requestId);
+
       default:
         return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action tidak dikenal');
     }
@@ -203,6 +233,122 @@ var Router = (function () {
     return Response.ok(requestId, result, 'Koneksi Google Drive diputus');
   }
 
+  // ---------- Members Handlers ----------
+  // Semua handler resolve spreadsheet ID via TenantResolver (dari metadata
+  // backend), bukan menerima spreadsheet ID dari Flutter (TD 17).
+
+  function handleMembersList(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var members = MemberService.findAll(ssId);
+    return Response.ok(requestId, { members: members }, 'Daftar anggota');
+  }
+
+  function handleMembersCreate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var createData = body.payload || {};
+    var result = MemberService.create(ssId, createData, membership.user_id);
+    return Response.ok(requestId, { member: result }, 'Anggota berhasil ditambahkan');
+  }
+
+  function handleMembersUpdate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var memberId = body.payload && body.payload.member_id;
+    var updateData = body.payload || {};
+    var result = MemberService.update(ssId, memberId, updateData, membership.user_id);
+    return Response.ok(requestId, { member: result }, 'Anggota berhasil diperbarui');
+  }
+
+  function handleMembersDeactivate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var memberId = body.payload && body.payload.member_id;
+    var result = MemberService.deactivate(ssId, memberId, membership.user_id);
+    return Response.ok(requestId, { member: result }, 'Anggota dinonaktifkan');
+  }
+
+  // ---------- Facilities Handlers ----------
+
+  function handleFacilitiesList(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var facilities = FacilityService.findAll(ssId);
+    return Response.ok(requestId, { facilities: facilities }, 'Daftar fasilitas');
+  }
+
+  function handleFacilitiesCreate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var createData = body.payload || {};
+    var result = FacilityService.create(ssId, createData, membership.user_id);
+    return Response.ok(requestId, { facility: result }, 'Fasilitas berhasil ditambahkan');
+  }
+
+  function handleFacilitiesUpdate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var facilityId = body.payload && body.payload.facility_id;
+    var updateData = body.payload || {};
+    var result = FacilityService.update(ssId, facilityId, updateData, membership.user_id);
+    return Response.ok(requestId, { facility: result }, 'Fasilitas berhasil diperbarui');
+  }
+
+  function handleFacilitiesDeactivate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var facilityId = body.payload && body.payload.facility_id;
+    var result = FacilityService.deactivate(ssId, facilityId, membership.user_id);
+    return Response.ok(requestId, { facility: result }, 'Fasilitas dinonaktifkan');
+  }
+
+  // ---------- Schedules Handlers ----------
+
+  function handleSchedulesList(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var schedules = ScheduleService.findAll(ssId);
+    return Response.ok(requestId, { schedules: schedules }, 'Daftar jadwal');
+  }
+
+  function handleSchedulesCreate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var createData = body.payload || {};
+    var result = ScheduleService.create(ssId, createData, membership.user_id);
+    return Response.ok(requestId, { schedule: result }, 'Jadwal berhasil dibuat');
+  }
+
+  function handleSchedulesUpdate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var scheduleId = body.payload && body.payload.schedule_id;
+    var updateData = body.payload || {};
+    var result = ScheduleService.update(ssId, scheduleId, updateData, membership.user_id);
+    return Response.ok(requestId, { schedule: result }, 'Jadwal berhasil diperbarui');
+  }
+
+  function handleSchedulesDeactivate(body, requestId) {
+    var membership = Authorization.checkStaff(body);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var scheduleId = body.payload && body.payload.schedule_id;
+    var result = ScheduleService.deactivate(ssId, scheduleId, membership.user_id);
+    return Response.ok(requestId, { schedule: result }, 'Jadwal dinonaktifkan');
+  }
+
   /** Memetakan pesan Error ke kode error terstandard. */
   function mapErrorCode(e) {
     var msg = e && e.message ? String(e.message) : '';
@@ -211,6 +357,8 @@ var Router = (function () {
       'TENANT_ACCESS_DENIED', 'VALIDATION_ERROR', 'DUPLICATE_BOOKING',
       'CAPACITY_FULL', 'GOOGLE_DISCONNECTED', 'SHEET_NOT_FOUND',
       'RATE_LIMITED', 'CONTROL_SPREADSHEET_NOT_CONFIGURED',
+      'MEMBER_NOT_FOUND', 'FACILITY_NOT_FOUND', 'SCHEDULE_NOT_FOUND',
+      'SCHEDULE_CONFLICT',
     ];
     for (var i = 0; i < known.length; i++) {
       if (msg.indexOf(known[i]) !== -1) return known[i];
