@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/models/booking.dart';
 import 'package:gym_slot/models/facility.dart';
 import 'package:gym_slot/models/gym.dart';
 import 'package:gym_slot/models/member.dart';
 import 'package:gym_slot/models/schedule.dart';
+import 'package:gym_slot/providers/booking_provider.dart';
 import 'package:gym_slot/providers/management_provider.dart';
 import 'package:provider/provider.dart';
 
-/// Layar detail gym dengan tab Anggota / Fasilitas / Jadwal (Phase 3).
+/// Layar detail gym dengan tab Anggota / Fasilitas / Jadwal (Phase 3) dan
+/// Booking / Kehadiran / Pengaturan (Phase 4).
 class GymDetailScreen extends StatefulWidget {
   final Gym gym;
 
@@ -30,14 +33,18 @@ class _GymDetailScreenState extends State<GymDetailScreen> {
 
   void _reload() {
     final mgmt = context.read<ManagementProvider>();
+    final booking = context.read<BookingProvider>();
     mgmt.loadMembers(widget.gym.gymId);
     mgmt.loadFacilities(widget.gym.gymId);
     mgmt.loadSchedules(widget.gym.gymId);
+    booking.loadBookings(widget.gym.gymId);
+    booking.loadAttendance(widget.gym.gymId);
+    booking.loadSettings(widget.gym.gymId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Anggota', 'Fasilitas', 'Jadwal'];
+    final tabs = ['Anggota', 'Fasilitas', 'Jadwal', 'Booking', 'Kehadiran', 'Pengaturan'];
 
     return Scaffold(
       appBar: AppBar(
@@ -51,18 +58,19 @@ class _GymDetailScreenState extends State<GymDetailScreen> {
       ),
       body: Column(
         children: [
-          // Segmented control sederhana
+          // Segmented control sederhana (dua baris agar muat 6 tab)
           Padding(
             padding: const EdgeInsets.all(8),
-            child: SegmentedButton<int>(
-              segments: [
+            child: Wrap(
+              spacing: 8,
+              children: [
                 for (var i = 0; i < tabs.length; i++)
-                  ButtonSegment(value: i, label: Text(tabs[i])),
+                  ChoiceChip(
+                    label: Text(tabs[i]),
+                    selected: _tabIndex == i,
+                    onSelected: (_) => setState(() => _tabIndex = i),
+                  ),
               ],
-              selected: {_tabIndex},
-              onSelectionChanged: (selection) {
-                setState(() => _tabIndex = selection.first);
-              },
             ),
           ),
           Expanded(
@@ -72,6 +80,9 @@ class _GymDetailScreenState extends State<GymDetailScreen> {
                 _MembersTab(gym: widget.gym),
                 _FacilitiesTab(gym: widget.gym),
                 _SchedulesTab(gym: widget.gym),
+                _BookingsTab(gym: widget.gym),
+                _AttendanceTab(gym: widget.gym),
+                _SettingsTab(gym: widget.gym),
               ],
             ),
           ),
@@ -475,6 +486,442 @@ class _SchedulesTab extends StatelessWidget {
   }
 }
 
+// ---------- Bookings Tab (Phase 4) ----------
+
+class _BookingsTab extends StatelessWidget {
+  final Gym gym;
+
+  const _BookingsTab({required this.gym});
+
+  @override
+  Widget build(BuildContext context) {
+    final mgmt = context.watch<ManagementProvider>();
+    final booking = context.watch<BookingProvider>();
+
+    return Stack(
+      children: [
+        Column(
+          children: [
+            if (booking.lastError != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.all(10),
+                color: Colors.red.shade50,
+                child: Text(
+                  booking.lastError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ),
+            Expanded(
+              child: booking.bookings.isEmpty
+                  ? const Center(
+                      child: Text('Belum ada booking',
+                          style: TextStyle(color: Colors.grey)),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                      itemCount: booking.bookings.length,
+                      itemBuilder: (context, i) {
+                        final b = booking.bookings[i];
+                        final memberName = mgmt.members
+                            .where((m) => m.memberId == b.memberId)
+                            .map((m) => m.fullName)
+                            .firstOrNull;
+                        final schedule = mgmt.schedules
+                            .where((s) => s.scheduleId == b.scheduleId)
+                            .firstOrNull;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                                child: Icon(Icons.event_available)),
+                            title: Text(memberName ?? b.memberId),
+                            subtitle: Text(schedule != null
+                                ? '${schedule.scheduleDate} ${schedule.startTime}-${schedule.endTime}'
+                                : b.scheduleId),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _BookingStatusChip(status: b.bookingStatus),
+                                if (b.isActive)
+                                  IconButton(
+                                    icon: const Icon(Icons.cancel,
+                                        size: 20, color: Colors.red),
+                                    tooltip: 'Batalkan',
+                                    onPressed: () => _confirmCancel(
+                                        context, gym.gymId, b),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+        _FloatingAddButton(
+          onPressed: () => _showBookingDialog(context),
+        ),
+      ],
+    );
+  }
+
+  void _confirmCancel(BuildContext context, String gymId, Booking b) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Batalkan booking?'),
+        content: const Text('Status booking akan menjadi Cancelled.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tidak'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<BookingProvider>().cancelBooking(
+                    gymId: gymId,
+                    bookingId: b.bookingId,
+                  );
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Batalkan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBookingDialog(BuildContext context) {
+    final mgmt = context.read<ManagementProvider>();
+    final members = mgmt.members;
+    final schedules = mgmt.schedules;
+
+    if (members.isEmpty || schedules.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Butuh minimal 1 anggota dan 1 jadwal untuk membuat booking.'),
+      ));
+      return;
+    }
+
+    String? memberId = members.first.memberId;
+    String? scheduleId = schedules.first.scheduleId;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Booking Baru'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: memberId,
+                decoration: const InputDecoration(labelText: 'Anggota'),
+                items: members
+                    .map((m) => DropdownMenuItem(
+                        value: m.memberId, child: Text(m.fullName)))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => memberId = v),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: scheduleId,
+                decoration: const InputDecoration(labelText: 'Jadwal'),
+                items: schedules
+                    .map((s) => DropdownMenuItem(
+                        value: s.scheduleId,
+                        child: Text(
+                            '${s.scheduleDate} ${s.startTime}-${s.endTime}')))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => scheduleId = v),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await context.read<BookingProvider>().createBooking(
+                      gymId: gym.gymId,
+                      memberId: memberId ?? '',
+                      scheduleId: scheduleId ?? '',
+                    );
+              },
+              child: const Text('Booking'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------- Attendance Tab (Phase 4) ----------
+
+class _AttendanceTab extends StatelessWidget {
+  final Gym gym;
+
+  const _AttendanceTab({required this.gym});
+
+  @override
+  Widget build(BuildContext context) {
+    final mgmt = context.watch<ManagementProvider>();
+    final booking = context.watch<BookingProvider>();
+
+    return Stack(
+      children: [
+        Column(
+          children: [
+            if (booking.lastError != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.all(10),
+                color: Colors.red.shade50,
+                child: Text(
+                  booking.lastError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ),
+            Expanded(
+              child: booking.attendance.isEmpty
+                  ? const Center(
+                      child: Text('Belum ada catatan kehadiran',
+                          style: TextStyle(color: Colors.grey)),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                      itemCount: booking.attendance.length,
+                      itemBuilder: (context, i) {
+                        final a = booking.attendance[i];
+                        final memberName = mgmt.members
+                            .where((m) => m.memberId == a.memberId)
+                            .map((m) => m.fullName)
+                            .firstOrNull;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                                child: Icon(Icons.login)),
+                            title: Text(memberName ?? a.memberId),
+                            subtitle: Text(
+                                'Check-in: ${a.checkInAt ?? '-'}\nMetode: ${a.attendanceMethod ?? '-'}'),
+                            isThreeLine: true,
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+        _FloatingAddButton(
+          onPressed: () => _showCheckinDialog(context),
+        ),
+      ],
+    );
+  }
+
+  void _showCheckinDialog(BuildContext context) {
+    final mgmt = context.read<ManagementProvider>();
+    final booking = context.read<BookingProvider>();
+    final members = mgmt.members;
+
+    if (members.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Butuh minimal 1 anggota untuk check-in.'),
+      ));
+      return;
+    }
+
+    String? memberId = members.first.memberId;
+    String? bookingId; // opsional (walk-in jika policy mengizinkan)
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Check-in Manual'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: memberId,
+                  decoration: const InputDecoration(labelText: 'Anggota'),
+                  items: members
+                      .map((m) => DropdownMenuItem(
+                          value: m.memberId, child: Text(m.fullName)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => memberId = v),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: bookingId,
+                  decoration: const InputDecoration(
+                    labelText: 'Booking (opsional / walk-in)',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                        value: null, child: Text('- tanpa booking -')),
+                    ...booking.bookings
+                        .where((b) => b.isActive)
+                        .map((b) => DropdownMenuItem(
+                              value: b.bookingId,
+                              child: Text(b.bookingId.substring(0, 8)),
+                            )),
+                  ],
+                  onChanged: (v) => setDialogState(() => bookingId = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await context.read<BookingProvider>().checkIn(
+                      gymId: gym.gymId,
+                      memberId: memberId ?? '',
+                      bookingId: bookingId,
+                    );
+              },
+              child: const Text('Check-in'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------- Settings Tab (Phase 4) ----------
+
+class _SettingsTab extends StatefulWidget {
+  final Gym gym;
+
+  const _SettingsTab({required this.gym});
+
+  @override
+  State<_SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<_SettingsTab> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final booking = context.watch<BookingProvider>();
+    final s = booking.settings;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (booking.lastError != null)
+          Container(
+            padding: const EdgeInsets.all(10),
+            margin: const EdgeInsets.only(bottom: 12),
+            color: Colors.red.shade50,
+            child: Text(booking.lastError!,
+                style: const TextStyle(color: Colors.red, fontSize: 13)),
+          ),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                title: const Text('Mode Perangkat Kehadiran'),
+                subtitle: const Text(
+                    'gym_camera / mobile_camera / both'),
+                trailing: DropdownButton<String>(
+                  value: (s['attendance_device_mode'] ?? 'both') ==
+                          'gym_camera'
+                      ? 'gym_camera'
+                      : (s['attendance_device_mode'] == 'mobile_camera'
+                          ? 'mobile_camera'
+                          : 'both'),
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'gym_camera', child: Text('gym_camera')),
+                    DropdownMenuItem(
+                        value: 'mobile_camera',
+                        child: Text('mobile_camera')),
+                    DropdownMenuItem(value: 'both', child: Text('both')),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (v) => _save(context,
+                          {'attendance_device_mode': v ?? 'both'}),
+                ),
+              ),
+              ListTile(
+                title: const Text('Kebijakan Booking Kehadiran'),
+                subtitle: const Text(
+                    'booking_required / walk_in_allowed'),
+                trailing: DropdownButton<String>(
+                  value: (s['attendance_booking_policy'] ??
+                          'booking_required') ==
+                      'walk_in_allowed'
+                      ? 'walk_in_allowed'
+                      : 'booking_required',
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'booking_required',
+                        child: Text('booking_required')),
+                    DropdownMenuItem(
+                        value: 'walk_in_allowed',
+                        child: Text('walk_in_allowed')),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (v) => _save(context,
+                          {'attendance_booking_policy': v ?? 'booking_required'}),
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Kehadiran Manual'),
+                subtitle: const Text(
+                    'Izinkan staff mencatat kehadiran manual'),
+                value: s['manual_attendance_enabled'] == 'true',
+                onChanged: _saving
+                    ? null
+                    : (v) => _save(context,
+                        {'manual_attendance_enabled': v.toString()}),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Hanya Owner yang dapat mengubah pengaturan.',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _save(BuildContext context, Map<String, String> updates) async {
+    setState(() => _saving = true);
+    final ok = await context
+        .read<BookingProvider>()
+        .updateSettings(gymId: widget.gym.gymId, updates: updates);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(
+      content: Text(ok ? 'Pengaturan disimpan' : 'Gagal menyimpan'),
+    ));
+  }
+}
+
 // ---------- Shared Widgets ----------
 
 class _EmptyState extends StatelessWidget {
@@ -549,6 +996,36 @@ class _StatusChip extends StatelessWidget {
           fontSize: 11,
           color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
         ),
+      ),
+    );
+  }
+}
+
+class _BookingStatusChip extends StatelessWidget {
+  final String? status;
+
+  const _BookingStatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = status ?? '-';
+    const Map<String, MaterialColor> colors = {
+      'Pending': Colors.orange,
+      'Confirmed': Colors.green,
+      'Completed': Colors.blue,
+      'Cancelled': Colors.grey,
+      'Rejected': Colors.red,
+    };
+    final color = colors[s] ?? Colors.grey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        s,
+        style: TextStyle(fontSize: 11, color: color.shade700),
       ),
     );
   }
