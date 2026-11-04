@@ -4,7 +4,7 @@ Saya ingin mengembangkan aplikasi bernama **GymSlot**. Sebelum melakukan perubah
 
 1. `PRD.md`
 2. `TECHNICAL_DOCUMENTATION.md`
-
+3. `desain.md`
 Kedua dokumen tersebut merupakan sumber acuan utama dalam pengembangan aplikasi GymSlot.
 
 ## 1. Pahami Dokumentasi
@@ -23,7 +23,7 @@ Pastikan kamu memahami:
 - Keamanan dan multi-tenant.
 - Tahapan implementasi.
 - Kriteria penerimaan setiap fitur.
-
+- Kriteria desain harus mengikuti file desain.md
 Jangan langsung melakukan coding sebelum memahami dokumentasi.
 
 ## 2. Teknologi yang Wajib Digunakan

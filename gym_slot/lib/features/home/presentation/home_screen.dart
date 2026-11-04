@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/features/dashboard/presentation/dashboard_stats_screen.dart';
 import 'package:gym_slot/features/management/presentation/gym_detail_screen.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
@@ -109,6 +110,25 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ...gyms.map((gym) => _GymCard(gym: gym)),
+                const SizedBox(height: 16),
+                // Akses cepat dashboard statistik gym pertama (PRD 15).
+                if (gyms.isNotEmpty)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                DashboardStatsScreen(gym: gyms.first),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.bar_chart),
+                      label: const Text('Lihat Statistik Gym'),
+                    ),
+                  ),
               ],
             ),
     );
