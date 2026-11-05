@@ -1,0 +1,6 @@
+GYMSLOT_PORT=8091
+GYMSLOT_DB=gymslot_prod_control
+GYMSLOT_ENV=production
+# WAJIB di production: isi Google Client ID agar validasi ID token fail-closed
+# GYMSLOT_GOOGLE_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
+# GYMSLOT_DSN=user:pass@tcp(127.0.0.1:3306)/?parseTime=true
