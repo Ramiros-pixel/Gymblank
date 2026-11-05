@@ -63,5 +63,8 @@ class AuthWrapper extends StatelessWidget {
 }
 
 /// Instance API client global (konfigurasi dari --dart-define).
-final String _apiUrl = String.fromEnvironment('GYMSLOT_API_URL', defaultValue: '');
-final apiClient = ApiClient(_apiUrl.isEmpty ? 'https://example.com' : _apiUrl);
+/// String.fromEnvironment hanya valid sebagai const constructor, jadi
+/// pembacaannya terpusat di ApiConfig (static const) — lihat api_client.dart.
+final apiClient = ApiClient(
+  ApiConfig.apiUrl.isEmpty ? 'https://example.com' : ApiConfig.apiUrl,
+);

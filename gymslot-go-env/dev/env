@@ -1,0 +1,6 @@
+GYMSLOT_PORT=8090
+GYMSLOT_DB=gymslot_dev_control
+GYMSLOT_ENV=development
+# GOOGLE_CLIENT_ID opsional di dev (token "dev" diterima untuk testing lokal)
+# GYMSLOT_GOOGLE_CLIENT_ID=
+# GYMSLOT_DSN=  # kosong = root@unix socket lokal
