@@ -87,6 +87,7 @@ var AttendanceService = (function () {
 
     GymRepository.insertRow(ssId, 'Attendance', attendance);
     GymRepository.audit(ssId, actorUserId, 'attendance.checkin', 'attendance', attendance.attendance_id, 'member=' + data.member_id);
+    DashboardService.invalidate(ssId);
     return attendance;
   }
 

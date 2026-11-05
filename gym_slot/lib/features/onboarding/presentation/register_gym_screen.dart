@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/core/theme/app_colors.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
 import 'package:gym_slot/providers/integration_provider.dart';
@@ -100,10 +101,20 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Daftar Gym Baru'),
+        title: Text(
+          'DAFTAR GYM'.toUpperCase(),
+          style: const TextStyle(
+            fontFamily: 'BarlowCondensed',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+            letterSpacing: 0.5,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Kembali',
         ),
       ),
       body: Form(
@@ -112,15 +123,13 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              'Pendaftaran Gym',
-              style: Theme.of(context).textTheme.headlineSmall,
+              'Data Gym',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
             Text(
               'Isi data gym Anda. Anda akan menjadi Owner gym ini.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
             TextFormField(
@@ -128,7 +137,6 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
               decoration: const InputDecoration(
                 labelText: 'Nama Gym',
                 hintText: 'Contoh: Fitness Center Jakarta',
-                border: OutlineInputBorder(),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Nama gym wajib diisi' : null,
@@ -139,7 +147,6 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
               decoration: const InputDecoration(
                 labelText: 'Alamat',
                 hintText: 'Contoh: Jl. Sudirman No. 1, Jakarta',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
@@ -148,7 +155,6 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
               decoration: const InputDecoration(
                 labelText: 'Nomor Telepon',
                 hintText: 'Contoh: 08123456789',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
@@ -157,7 +163,6 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
               decoration: const InputDecoration(
                 labelText: 'Email Kontak',
                 hintText: 'contoh@email.com',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
@@ -166,17 +171,28 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
               decoration: const InputDecoration(
                 labelText: 'Zona Waktu',
                 hintText: 'Asia/Jakarta',
-                border: OutlineInputBorder(),
               ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.red.shade50,
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.red),
+                decoration: BoxDecoration(
+                  color: AppColors.redTint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 18, color: AppColors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: AppColors.red),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -184,27 +200,51 @@ class _RegisterGymScreenState extends State<RegisterGymScreen> {
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.green.shade50,
-                child: Text(
-                  _success!,
-                  style: const TextStyle(color: Colors.green),
+                decoration: BoxDecoration(
+                  color: AppColors.black, // sukses = kartu hitam
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        size: 18, color: AppColors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _success!,
+                        style: const TextStyle(color: AppColors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Daftar Gym'),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isLoading
+                    ? AppColors.redDark // red-dark pressed
+                    : AppColors.red,
+                foregroundColor: AppColors.white,
+                disabledBackgroundColor: AppColors.redDark,
+                disabledForegroundColor: AppColors.white,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(AppColors.white),
+                      ),
+                    )
+                  : const Text('Daftar Gym'),
             ),
           ],
         ),
@@ -310,7 +350,7 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                   Text(
                     'Izinkan GymSlot mengakses Google Drive Anda untuk membuat spreadsheet booking gym.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
+                          color: AppColors.gray500,
                         ),
                   ),
                   const SizedBox(height: 24),
@@ -320,7 +360,7 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                     child: ListTile(
                       leading: Icon(
                         connected ? Icons.cloud_done : Icons.cloud_off,
-                        color: connected ? Colors.green : Colors.grey,
+                        color: connected ? AppColors.black : AppColors.gray500,
                       ),
                       title: Text(
                         connected ? 'Terhubung' : 'Belum Terhubung',
@@ -328,7 +368,7 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                       ),
                       subtitle: Text(
                         _status?['status'] ?? '-',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: AppColors.gray500),
                       ),
                     ),
                   ),
@@ -338,10 +378,10 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                   if (_error != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
-                      color: Colors.red.shade50,
+                      color: AppColors.redTint,
                       child: Text(
                         _error!,
-                        style: const TextStyle(color: Colors.red),
+                        style: const TextStyle(color: AppColors.red),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -366,7 +406,7 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                       const SizedBox(height: 8),
                       SelectableText(
                         _authUrl!,
-                        style: const TextStyle(fontSize: 12, color: Colors.blue),
+                        style: const TextStyle(fontSize: 12, color: AppColors.black),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -400,7 +440,7 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                         icon: const Icon(Icons.link_off),
                         label: const Text('Putuskan Koneksi'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
+                          foregroundColor: AppColors.red,
                         ),
                       ),
                     ),
@@ -426,7 +466,7 @@ class _GoogleDriveConnectScreenState extends State<GoogleDriveConnectScreen> {
                     '1. Koneksikan Google Drive\n'
                     '2. Buat spreadsheet GymBooking\n'
                     '3. Gym siap digunakan untuk booking',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(fontSize: 14, color: AppColors.gray500),
                   ),
                 ],
               ),

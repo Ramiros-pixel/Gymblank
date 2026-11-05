@@ -90,6 +90,9 @@ var GymSettingsService = (function () {
     }
 
     GymRepository.audit(ssId, actorUserId, 'settings.update', 'settings', '', JSON.stringify(updates));
+    if (updates.timezone !== undefined) {
+      DashboardService.invalidate(ssId);
+    }
     return getAll(ssId);
   }
 

@@ -88,6 +88,7 @@ var ScheduleService = (function () {
 
     GymRepository.insertRow(ssId, 'Schedules', schedule);
     GymRepository.audit(ssId, actorUserId, 'schedules.create', 'schedule', schedule.schedule_id, 'create');
+    DashboardService.invalidate(ssId);
     return schedule;
   }
 
@@ -123,6 +124,7 @@ var ScheduleService = (function () {
 
     var result = GymRepository.updateRow(ssId, 'Schedules', 'schedule_id', scheduleId, updates);
     GymRepository.audit(ssId, actorUserId, 'schedules.update', 'schedule', scheduleId, 'update');
+    DashboardService.invalidate(ssId);
     return result;
   }
 

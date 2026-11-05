@@ -34,9 +34,17 @@ var GoogleAuth = (function () {
     var claims = JSON.parse(response.getContentText());
 
     // Validasi audience harus cocok dengan OAuth Client ID GymSlot.
+    // Wajib: jika GOOGLE_CLIENT_ID tersedia, aud TIDAK BOLEH kosong
+    // dan harus sama persis (mencegah token dari OAuth app lain).
     var expectedAud = Settings.getGoogleClientId();
-    if (expectedAud && claims.aud && claims.aud !== expectedAud) {
-      throw Error('AUTH_INVALID');
+    if (expectedAud) {
+      if (!claims.aud || claims.aud !== expectedAud) {
+        throw Error('AUTH_INVALID');
+      }
+    } else if (claims.aud) {
+      // Tanpa konfigurasi client ID, token tanpa aud ditolak juga —
+      // produksi wajib mengisi GOOGLE_CLIENT_ID (fail-closed).
+      throw Error('AUTH_INVALID', 'GOOGLE_CLIENT_ID belum dikonfigurasi di backend');
     }
 
     // Validasi issuer (Google).

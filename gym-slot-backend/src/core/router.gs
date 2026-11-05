@@ -23,6 +23,20 @@ var Router = (function () {
       return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action wajib diisi');
     }
 
+    // Batasi panjang field string untuk mencegah payload abnormal.
+    if (String(body.action).length > 64 ||
+        (body.request_id && String(body.request_id).length > 128)) {
+      return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Request tidak valid');
+    }
+
+    // Rate limiting per user+action (PRD 17). Sebelum otorisasi agar
+    // permintaan berlebih ditolak sejak awal.
+    var userIdGuess = (body.auth && body.auth.session_token) ? 'tok' : 'anon';
+    if (!RateLimiter.check(userIdGuess, action)) {
+      Logger.audit(null, action, 'request', '', 'RATE_LIMITED');
+      return Response.fail(requestId, Errors.CODES.RATE_LIMITED, 'Terlalu banyak permintaan. Tunggu sebentar.');
+    }
+
     try {
       return dispatch(action, body, requestId);
     } catch (e) {
@@ -119,6 +133,12 @@ var Router = (function () {
         return handleSettingsGet(body, requestId);
       case 'settings.update':
         return handleSettingsUpdate(body, requestId);
+
+      // Dashboard
+      case 'dashboard.stats':
+        return handleDashboardStats(body, requestId);
+      case 'dashboard.charts':
+        return handleDashboardCharts(body, requestId);
 
       default:
         return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action tidak dikenal');
@@ -468,6 +488,25 @@ var Router = (function () {
     var updates = body.payload && body.payload.settings ? body.payload.settings : {};
     var result = GymSettingsService.update(ssId, updates, membership.user_id);
     return Response.ok(requestId, { settings: result }, 'Pengaturan diperbarui');
+  }
+
+  // ---------- Dashboard Handlers ----------
+
+  function handleDashboardStats(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var stats = DashboardService.getStats(ssId);
+    return Response.ok(requestId, { stats: stats }, 'Statistik dashboard');
+  }
+
+  function handleDashboardCharts(body, requestId) {
+    var membership = Authorization.checkPermission(body, ['owner', 'admin', 'trainer', 'member']);
+    var gymId = body.payload && body.payload.gym_id;
+    var ssId = TenantResolver.resolveSpreadsheetId(membership.user_id, gymId);
+    var p = body.payload || {};
+    var charts = DashboardService.getCharts(ssId, p.range, p.start_date, p.end_date);
+    return Response.ok(requestId, { charts: charts }, 'Data grafik dashboard');
   }
 
   /** Memetakan pesan Error ke kode error terstandard. */

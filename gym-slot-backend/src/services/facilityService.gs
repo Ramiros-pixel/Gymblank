@@ -33,6 +33,7 @@ var FacilityService = (function () {
 
     GymRepository.insertRow(ssId, 'Facilities', facility);
     GymRepository.audit(ssId, actorUserId, 'facilities.create', 'facility', facility.facility_id, 'create');
+    DashboardService.invalidate(ssId);
     return facility;
   }
 
@@ -54,6 +55,7 @@ var FacilityService = (function () {
 
     var result = GymRepository.updateRow(ssId, 'Facilities', 'facility_id', facilityId, updates);
     GymRepository.audit(ssId, actorUserId, 'facilities.update', 'facility', facilityId, 'update');
+    DashboardService.invalidate(ssId);
     return result;
   }
 

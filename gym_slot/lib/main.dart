@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gym_slot/core/network/api_client.dart';
+import 'package:gym_slot/core/theme/app_theme.dart';
 import 'package:gym_slot/features/authentication/presentation/login_screen.dart';
 import 'package:gym_slot/features/home/presentation/home_screen.dart';
 import 'package:gym_slot/features/onboarding/presentation/register_gym_screen.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
 import 'package:gym_slot/providers/booking_provider.dart';
+import 'package:gym_slot/providers/dashboard_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
 import 'package:gym_slot/providers/integration_provider.dart';
 import 'package:gym_slot/providers/management_provider.dart';
@@ -28,13 +30,11 @@ class GymSlotApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => IntegrationProvider(apiClient)),
         ChangeNotifierProvider(create: (_) => ManagementProvider(apiClient)),
         ChangeNotifierProvider(create: (_) => BookingProvider(apiClient)),
+        ChangeNotifierProvider(create: (_) => DashboardProvider(apiClient)),
       ],
       child: MaterialApp(
         title: 'GymSlot',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB71C1C)),
-        ),
+        theme: AppTheme.light,
         home: const AuthWrapper(),
         routes: {
           '/register-gym': (context) => const RegisterGymScreen(),

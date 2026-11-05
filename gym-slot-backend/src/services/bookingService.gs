@@ -114,6 +114,7 @@ var BookingService = (function () {
       };
       GymRepository.insertRow(ssId, 'Bookings', booking);
       GymRepository.audit(ssId, actorUserId, 'bookings.create', 'booking', booking.booking_id, 'member=' + memberId);
+      DashboardService.invalidate(ssId);
       return booking;
     } finally {
       lock.releaseLock();
@@ -134,6 +135,7 @@ var BookingService = (function () {
       cancelled_at: DateTimeHelper.nowIso(),
     });
     GymRepository.audit(ssId, actorUserId, 'bookings.cancel', 'booking', bookingId, '');
+    DashboardService.invalidate(ssId);
     return result;
   }
 

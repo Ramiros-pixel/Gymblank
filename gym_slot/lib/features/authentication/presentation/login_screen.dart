@@ -3,10 +3,12 @@ import 'package:gym_slot/core/theme/app_colors.dart';
 import 'package:gym_slot/core/theme/app_spacing.dart';
 import 'package:gym_slot/models/user.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
+import 'package:gym_slot/shared/widgets/app_states.dart';
 import 'package:provider/provider.dart';
 
-/// Layar login GymSlot. (Lihat desain.md 8.2.)
-/// Latar hitam penuh, logo putih dengan aksen merah, satu tombol utama merah.
+/// Layar login GymSlot (desain.md 8.2).
+/// Latar hitam penuh, logo putih dengan aksen merah, satu tombol merah.
+/// Loading: tombol berubah state loading. Gagal: snackbar.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
 
   Future<void> _signIn() async {
-    if (_loading) return;
+    if (_loading) return; // anti double tap (desain.md 14.5)
     setState(() => _loading = true);
 
     try {
@@ -43,11 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Terjadi kesalahan: $e')),
-        );
-      }
+      if (mounted) showErrorSnack(context, 'Gagal masuk. Coba lagi.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -64,7 +62,31 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              // Logo dan tagline.
+              // Logo: kotak merah dengan "G" putih + nama produk.
+              Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.red,
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusButton),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'G',
+                    style: TextStyle(
+                      fontFamily: 'BarlowCondensed',
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Judul layar: Barlow Condensed kapital (desain.md 4).
               const Text(
                 'GYMSLOT',
                 textAlign: TextAlign.center,
@@ -74,32 +96,71 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 44 / 40,
                   fontWeight: FontWeight.bold,
                   color: AppColors.white,
+                  letterSpacing: 1.5,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Booking slot gym.\nTanpa antre. Tanpa ribet.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.gray500,
-                    ),
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 20 / 14,
+                  color: AppColors.gray500,
+                ),
               ),
               const Spacer(),
-              // Tombol utama masuk dengan Google.
-              ElevatedButton.icon(
-                onPressed: _loading ? null : _signIn,
-                icon: const Icon(Icons.g_mobiledata, color: AppColors.white),
-                label: Text(
-                  _loading ? 'Memproses...' : 'Masuk dengan Google',
+              // Tombol utama merah (desain.md 6.1 primary).
+              SizedBox(
+                height: AppSpacing.buttonHeight,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _signIn,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _loading ? AppColors.redDark : AppColors.red,
+                    foregroundColor: AppColors.white,
+                    disabledBackgroundColor: AppColors.redDark,
+                    disabledForegroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusButton),
+                    ),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.white),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.g_mobiledata, size: 26),
+                            SizedBox(width: AppSpacing.xxs),
+                            Text(
+                              'Masuk dengan Google',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Dengan masuk, kamu setuju dengan Syarat & Privasi.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.gray500,
-                    ),
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 16 / 12,
+                  color: AppColors.gray500,
+                ),
               ),
             ],
           ),
