@@ -23,6 +23,20 @@ var Router = (function () {
       return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Action wajib diisi');
     }
 
+    // Batasi panjang field string untuk mencegah payload abnormal.
+    if (String(body.action).length > 64 ||
+        (body.request_id && String(body.request_id).length > 128)) {
+      return Response.fail(requestId, Errors.CODES.VALIDATION_ERROR, 'Request tidak valid');
+    }
+
+    // Rate limiting per user+action (PRD 17). Sebelum otorisasi agar
+    // permintaan berlebih ditolak sejak awal.
+    var userIdGuess = (body.auth && body.auth.session_token) ? 'tok' : 'anon';
+    if (!RateLimiter.check(userIdGuess, action)) {
+      Logger.audit(null, action, 'request', '', 'RATE_LIMITED');
+      return Response.fail(requestId, Errors.CODES.RATE_LIMITED, 'Terlalu banyak permintaan. Tunggu sebentar.');
+    }
+
     try {
       return dispatch(action, body, requestId);
     } catch (e) {

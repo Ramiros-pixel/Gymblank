@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gym_slot/core/network/api_client.dart';
+import 'package:gym_slot/core/theme/app_theme.dart';
 import 'package:gym_slot/features/authentication/presentation/login_screen.dart';
 import 'package:gym_slot/features/home/presentation/home_screen.dart';
 import 'package:gym_slot/features/onboarding/presentation/register_gym_screen.dart';
@@ -33,10 +34,7 @@ class GymSlotApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'GymSlot',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB71C1C)),
-        ),
+        theme: AppTheme.light,
         home: const AuthWrapper(),
         routes: {
           '/register-gym': (context) => const RegisterGymScreen(),

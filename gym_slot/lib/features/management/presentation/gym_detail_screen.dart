@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/core/theme/app_colors.dart';
 import 'package:gym_slot/models/booking.dart';
 import 'package:gym_slot/models/facility.dart';
 import 'package:gym_slot/models/gym.dart';
@@ -6,6 +7,7 @@ import 'package:gym_slot/models/member.dart';
 import 'package:gym_slot/models/schedule.dart';
 import 'package:gym_slot/providers/booking_provider.dart';
 import 'package:gym_slot/providers/management_provider.dart';
+import 'package:gym_slot/shared/widgets/status_chip.dart';
 import 'package:provider/provider.dart';
 
 /// Layar detail gym dengan tab Anggota / Fasilitas / Jadwal (Phase 3) dan
@@ -507,17 +509,21 @@ class _BookingsTab extends StatelessWidget {
                 width: double.infinity,
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 padding: const EdgeInsets.all(10),
-                color: Colors.red.shade50,
+                decoration: BoxDecoration(
+                  color: AppColors.redTint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Text(
                   booking.lastError!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: const TextStyle(
+                      color: AppColors.red, fontSize: 13),
                 ),
               ),
             Expanded(
               child: booking.bookings.isEmpty
                   ? const Center(
                       child: Text('Belum ada booking',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(color: AppColors.gray500)),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
@@ -547,7 +553,8 @@ class _BookingsTab extends StatelessWidget {
                                 if (b.isActive)
                                   IconButton(
                                     icon: const Icon(Icons.cancel,
-                                        size: 20, color: Colors.red),
+                                        size: 20,
+                                        color: AppColors.red),
                                     tooltip: 'Batalkan',
                                     onPressed: () => _confirmCancel(
                                         context, gym.gymId, b),
@@ -587,7 +594,8 @@ class _BookingsTab extends StatelessWidget {
                     bookingId: b.bookingId,
                   );
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.red),
             child: const Text('Batalkan'),
           ),
         ],
@@ -685,17 +693,21 @@ class _AttendanceTab extends StatelessWidget {
                 width: double.infinity,
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 padding: const EdgeInsets.all(10),
-                color: Colors.red.shade50,
+                decoration: BoxDecoration(
+                  color: AppColors.redTint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Text(
                   booking.lastError!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: const TextStyle(
+                      color: AppColors.red, fontSize: 13),
                 ),
               ),
             Expanded(
               child: booking.attendance.isEmpty
                   ? const Center(
                       child: Text('Belum ada catatan kehadiran',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(color: AppColors.gray500)),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
@@ -831,9 +843,13 @@ class _SettingsTabState extends State<_SettingsTab> {
           Container(
             padding: const EdgeInsets.all(10),
             margin: const EdgeInsets.only(bottom: 12),
-            color: Colors.red.shade50,
+            decoration: BoxDecoration(
+              color: AppColors.redTint,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Text(booking.lastError!,
-                style: const TextStyle(color: Colors.red, fontSize: 13)),
+                style: const TextStyle(
+                    color: AppColors.red, fontSize: 13)),
           ),
         Card(
           child: Column(
@@ -903,7 +919,8 @@ class _SettingsTabState extends State<_SettingsTab> {
         const SizedBox(height: 12),
         Text(
           'Hanya Owner yang dapat mengubah pengaturan.',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: const TextStyle(
+              color: AppColors.gray500, fontSize: 12),
         ),
       ],
     );
@@ -943,9 +960,9 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Colors.grey),
+          Icon(icon, size: 64, color: AppColors.gray500),
           const SizedBox(height: 16),
-          Text(message, style: const TextStyle(color: Colors.grey)),
+          Text(message, style: const TextStyle(color: AppColors.gray500)),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: onAction,
@@ -965,11 +982,15 @@ class _FloatingAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // FAB merah (desain.md 8.8): FAB merah untuk tambah.
     return Positioned(
       right: 16,
       bottom: 16,
       child: FloatingActionButton(
         onPressed: onPressed,
+        backgroundColor: AppColors.red,
+        foregroundColor: AppColors.white,
+        tooltip: 'Tambah',
         child: const Icon(Icons.add),
       ),
     );
@@ -983,20 +1004,10 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = label == 'Active' || label == 'Active';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.green.shade50 : Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
-        ),
-      ),
+    // Chip status terpusat (desain.md 3.4): bentuk + ikon + label.
+    return StatusChip(
+      label: label,
+      style: StatusChip.styleFor(label),
     );
   }
 }
@@ -1008,25 +1019,10 @@ class _BookingStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = status ?? '-';
-    const Map<String, MaterialColor> colors = {
-      'Pending': Colors.orange,
-      'Confirmed': Colors.green,
-      'Completed': Colors.blue,
-      'Cancelled': Colors.grey,
-      'Rejected': Colors.red,
-    };
-    final color = colors[s] ?? Colors.grey;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.shade50,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        s,
-        style: TextStyle(fontSize: 11, color: color.shade700),
-      ),
+    // Chip status booking terpusat (desain.md 3.4).
+    return StatusChip(
+      label: status ?? '-',
+      style: StatusChip.styleFor(status),
     );
   }
 }

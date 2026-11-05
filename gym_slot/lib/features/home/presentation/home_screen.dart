@@ -1,267 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/core/theme/app_colors.dart';
+import 'package:gym_slot/core/theme/app_spacing.dart';
 import 'package:gym_slot/features/dashboard/presentation/dashboard_stats_screen.dart';
 import 'package:gym_slot/features/management/presentation/gym_detail_screen.dart';
+import 'package:gym_slot/models/gym.dart';
 import 'package:gym_slot/providers/auth_provider.dart';
 import 'package:gym_slot/providers/gym_provider.dart';
+import 'package:gym_slot/shared/widgets/app_card.dart';
+import 'package:gym_slot/shared/widgets/app_states.dart';
+import 'package:gym_slot/shared/widgets/status_chip.dart';
 import 'package:provider/provider.dart';
 
-/// Entry point aplikasi setelah authentication.
-/// Menampilkan Bottom Navigation setelah login berhasil.
+/// Home setelah login (desain.md 7 & 8.1).
+/// - Belum punya gym → dua kartu pilihan (8.3).
+/// - Punya gym → pilih gym → navigasi 4 tab per role (7.1/7.2).
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: const _HomeBody(),
-      bottomNavigationBar: const _BottomNav(),
-    );
-  }
-}
-
-class _HomeBody extends StatelessWidget {
-  const _HomeBody();
-
-  @override
-  Widget build(BuildContext context) {
-    final navState = context.watch<_BottomNavState>();
-    final currentIndex = navState.currentIndex;
-
-    final screens = [
-      const DashboardScreen(),
-      const MembersScreen(),
-      const SchedulesScreen(),
-      const ProfileScreen(),
-    ];
-
-    return IndexedStack(
-      index: currentIndex,
-      children: screens,
-    );
-  }
-}
-
-class _BottomNav extends StatefulWidget {
-  const _BottomNav();
-
-  @override
-  State<_BottomNav> createState() => _BottomNavState();
-}
-
-class _BottomNavState extends State<_BottomNav> {
-  int _currentIndex = 0;
-
-  int get currentIndex => _currentIndex;
-
-  void navigateTo(int index) {
-    setState(() => _currentIndex = index);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: _currentIndex,
-      onDestinationSelected: navigateTo,
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-        NavigationDestination(icon: Icon(Icons.people), label: 'Anggota'),
-        NavigationDestination(icon: Icon(Icons.calendar_today), label: 'Jadwal'),
-        NavigationDestination(icon: Icon(Icons.person), label: 'Profil'),
-      ],
-    );
-  }
-}
-
-// ---------- Screens ----------
-
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final gyms = context.watch<GymProvider>().gyms;
     final user = context.watch<AuthProvider>().user;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<GymProvider>().loadGyms();
-            },
-          ),
-        ],
-      ),
-      body: gyms.isEmpty
-          ? const _EmptyGymState()
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Halo, ${user?.fullName ?? "User"}!',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Pilih gym untuk mulai:',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                ...gyms.map((gym) => _GymCard(gym: gym)),
-                const SizedBox(height: 16),
-                // Akses cepat dashboard statistik gym pertama (PRD 15).
-                if (gyms.isNotEmpty)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                DashboardStatsScreen(gym: gyms.first),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.bar_chart),
-                      label: const Text('Lihat Statistik Gym'),
-                    ),
-                  ),
-              ],
-            ),
-    );
+    if (gyms.isEmpty) {
+      return const _NoGymScreen();
+    }
+
+    // MVP: pakai gym pertama. Pemilih gym menyusul (desain.md 7).
+    final gym = gyms.first;
+    final role = gym.role ?? 'member';
+
+    switch (role) {
+      case 'owner':
+      case 'admin':
+        return _StaffNav(gym: gym, userName: user?.fullName ?? '');
+      case 'trainer':
+        return _TrainerNav(gym: gym);
+      default:
+        return _MemberNav(gym: gym, userName: user?.fullName ?? '');
+    }
   }
 }
 
-class _GymCard extends StatelessWidget {
-  final dynamic gym;
+// ---------- Belum punya gym (desain.md 8.3) ----------
 
-  const _GymCard({required this.gym});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.fitness_center)),
-        title: Text(gym.gymName),
-        subtitle: Text(gym.gymStatus ?? 'Pending'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => GymDetailScreen(gym: gym),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _EmptyGymState extends StatelessWidget {
-  const _EmptyGymState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.fitness_center, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'Belum ada gym',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Anda belum bergabung dengan gym manapun.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushNamed('/register-gym');
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Daftar Gym Baru'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class MembersScreen extends StatelessWidget {
-  const MembersScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Anggota')),
-      body: const Center(child: Text('Daftar Anggota')),
-    );
-  }
-}
-
-class SchedulesScreen extends StatelessWidget {
-  const SchedulesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Jadwal')),
-      body: const Center(child: Text('Daftar Jadwal')),
-    );
-  }
-}
-
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class _NoGymScreen extends StatelessWidget {
+  const _NoGymScreen();
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: AppBar(
+        title: Text(
+          'MULAI',
+          style: TextStyle(
+            fontFamily: 'BarlowCondensed',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
         children: [
-          if (user?.photoUrl != null)
-            CircleAvatar(
-              backgroundImage: NetworkImage(user!.photoUrl!),
-              radius: 40,
-            ),
-          const SizedBox(height: 16),
           Text(
-            user?.fullName ?? '',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            user?.email ?? '',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey,
+            'Halo, ${user?.fullName ?? ''}.',
+            style: const TextStyle(
+              fontFamily: 'BarlowCondensed',
+              fontSize: 28,
+              height: 32 / 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.black,
             ),
           ),
-          const Divider(height: 32),
+          Text(
+            'Mau mulai dari mana?',
+            style: TextStyle(fontSize: 14, color: AppColors.gray500),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _ChoiceCard(
+            icon: Icons.add_business,
+            title: 'Buat gym baru',
+            subtitle: 'Untuk pemilik gym',
+            onTap: () {
+              Navigator.of(context).pushNamed('/register-gym');
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const _ChoiceCard(
+            icon: Icons.mark_email_unread,
+            title: 'Punya undangan',
+            subtitle: 'Gabung ke gym yang ada',
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Profil + keluar tetap bisa diakses.
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Keluar'),
             onTap: () async {
               await context.read<AuthProvider>().logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/');
-              }
             },
           ),
         ],
@@ -269,3 +110,398 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
+class _ChoiceCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  const _ChoiceCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, size: 28, color: AppColors.red),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                      fontSize: 14, color: AppColors.gray500),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.gray500),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------- Navigasi Owner/Admin (desain.md 7.2) ----------
+
+class _StaffNav extends StatelessWidget {
+  final Gym gym;
+  final String userName;
+
+  const _StaffNav({required this.gym, required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = [
+      ('Dashboard', Icons.dashboard_outlined),
+      ('Jadwal', Icons.calendar_today_outlined),
+      ('Anggota', Icons.people_outline),
+      ('Lainnya', Icons.grid_view_outlined),
+    ];
+
+    return _RoleNavShell(
+      gym: gym,
+      tabs: tabs,
+      builders: [
+        (_) => DashboardStatsScreen(gym: gym),
+        (_) => _TabPlaceholder(title: 'Jadwal', gym: gym),
+        (_) => _TabPlaceholder(title: 'Anggota', gym: gym),
+        (_) => _MoreScreen(gym: gym, userName: userName),
+      ],
+    );
+  }
+}
+
+// ---------- Navigasi Member (desain.md 7.1) ----------
+
+class _MemberNav extends StatelessWidget {
+  final Gym gym;
+  final String userName;
+
+  const _MemberNav({required this.gym, required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = [
+      ('Beranda', Icons.home_outlined),
+      ('Jadwal', Icons.calendar_today_outlined),
+      ('Booking', Icons.event_available_outlined),
+      ('Profil', Icons.person_outline),
+    ];
+
+    return _RoleNavShell(
+      gym: gym,
+      tabs: tabs,
+      builders: [
+        (_) => _TabPlaceholder(title: 'Beranda', gym: gym),
+        (_) => _TabPlaceholder(title: 'Jadwal', gym: gym),
+        (_) => _TabPlaceholder(title: 'Booking', gym: gym),
+        (_) => _ProfileScreen(gym: gym, userName: userName),
+      ],
+    );
+  }
+}
+
+// ---------- Navigasi Trainer: 2 tab read-only (desain.md 7.3) ----------
+
+class _TrainerNav extends StatelessWidget {
+  final Gym gym;
+
+  const _TrainerNav({required this.gym});
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = [
+      ('Jadwal', Icons.calendar_today_outlined),
+      ('Profil', Icons.person_outline),
+    ];
+
+    return _RoleNavShell(
+      gym: gym,
+      tabs: tabs,
+      builders: [
+        (_) => _TabPlaceholder(title: 'Jadwal (baca saja)', gym: gym),
+        (_) => _ProfileScreen(gym: gym, userName: ''),
+      ],
+    );
+  }
+}
+
+/// Shell navigasi bawah bersama: ikon + label selalu terlihat,
+/// tab aktif hitam (desain.md 6.5).
+class _RoleNavShell extends StatefulWidget {
+  final Gym gym;
+  final List<(String, IconData)> tabs;
+  final List<Widget Function(Gym gym)> builders;
+
+  const _RoleNavShell({
+    required this.gym,
+    required this.tabs,
+    required this.builders,
+  });
+
+  @override
+  State<_RoleNavShell> createState() => _RoleNavShellState();
+}
+
+class _RoleNavShellState extends State<_RoleNavShell> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _index,
+        children: [for (var i = 0; i < widget.tabs.length; i++) widget.builders[i](widget.gym)],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: [
+          for (final (label, icon) in widget.tabs)
+            NavigationDestination(icon: Icon(icon), label: label),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------- Layar Lainnya (desain.md 7.2) ----------
+
+class _MoreScreen extends StatelessWidget {
+  final Gym gym;
+  final String userName;
+
+  const _MoreScreen({required this.gym, required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'LAINNYA',
+          style: TextStyle(
+            fontFamily: 'BarlowCondensed',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        children: [
+          if (gym.gymStatus != null && gym.gymStatus != 'Active') ...[
+            GymBanner(status: gym.gymStatus!),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          _MoreItem(
+            icon: Icons.fitness_center_outlined,
+            label: 'Fasilitas',
+            onTap: () => _openDetail(context, 1),
+          ),
+          _MoreItem(
+            icon: Icons.calendar_month_outlined,
+            label: 'Jadwal',
+            onTap: () => _openDetail(context, 2),
+          ),
+          _MoreItem(
+            icon: Icons.event_available_outlined,
+            label: 'Booking',
+            onTap: () => _openDetail(context, 3),
+          ),
+          _MoreItem(
+            icon: Icons.login_outlined,
+            label: 'Kehadiran',
+            onTap: () => _openDetail(context, 4),
+          ),
+          _MoreItem(
+            icon: Icons.settings_outlined,
+            label: 'Pengaturan Gym',
+            onTap: () => _openDetail(context, 5),
+          ),
+          _MoreItem(
+            icon: Icons.cloud_sync_outlined,
+            label: 'Koneksi Google',
+            onTap: () => _openDetail(context, 5),
+          ),
+          _MoreItem(
+            icon: Icons.person_outline,
+            label: 'Profil',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      _ProfileScreen(gym: gym, userName: userName),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openDetail(BuildContext context, int initialTab) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GymDetailScreen(gym: gym),
+      ),
+    );
+  }
+}
+
+class _MoreItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MoreItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: ListTile(
+        leading: Icon(icon, color: AppColors.black),
+        title: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+          ),
+        ),
+        trailing:
+            const Icon(Icons.chevron_right, color: AppColors.gray500),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+// ---------- Layar Profil (desain.md 7.1/7.2) ----------
+
+class _ProfileScreen extends StatelessWidget {
+  final Gym gym;
+  final String userName;
+
+  const _ProfileScreen({required this.gym, required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'PROFIL',
+          style: TextStyle(
+            fontFamily: 'BarlowCondensed',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        children: [
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user?.fullName ?? userName,
+                  style: const TextStyle(
+                    fontFamily: 'BarlowCondensed',
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.black,
+                  ),
+                ),
+                Text(
+                  user?.email ?? '',
+                  style: TextStyle(
+                      fontSize: 14, color: AppColors.gray500),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                StatusChip(
+                  label: gym.role ?? 'member',
+                  style: StatusChipStyle.active,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Keluar'),
+            onTap: () async {
+              await context.read<AuthProvider>().logout();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Placeholder tab yang belum punya layar khusus di fase ini.
+class _TabPlaceholder extends StatelessWidget {
+  final String title;
+  final Gym gym;
+
+  const _TabPlaceholder({required this.title, required this.gym});
+
+  @override
+  Widget build(BuildContext context) {
+    // Tab Jadwal/Booking untuk staff membuka GymDetailScreen berisi data nyata.
+    if (title == 'Jadwal') {
+      return GymDetailScreen(gym: gym);
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontFamily: 'BarlowCondensed',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.black,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+      body: EmptyState(
+        icon: Icons.construction,
+        title: 'Segera hadir',
+        message: 'Layar ini sedang disiapkan.',
+      ),
+    );
+  }
+}
+

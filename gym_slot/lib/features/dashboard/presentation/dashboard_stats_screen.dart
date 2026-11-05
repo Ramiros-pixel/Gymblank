@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gym_slot/core/theme/app_colors.dart';
 import 'package:gym_slot/models/gym.dart';
 import 'package:gym_slot/providers/dashboard_provider.dart';
+import 'package:gym_slot/shared/widgets/app_card.dart';
+import 'package:gym_slot/shared/widgets/app_states.dart';
+import 'package:gym_slot/shared/widgets/status_chip.dart';
 import 'package:provider/provider.dart';
 
 /// Dashboard statistik & grafik gym (Phase 5, PRD 8.1 & 15).
@@ -72,9 +76,22 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
   Widget build(BuildContext context) {
     final dash = context.watch<DashboardProvider>();
 
+    // App bar hitam untuk halaman dashboard (desain.md 6.5 & 9).
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dashboard ${widget.gym.gymName}'),
+        backgroundColor: AppColors.black,
+        foregroundColor: AppColors.white,
+        title: Text(
+          'DASHBOARD',
+          style: const TextStyle(
+            fontFamily: 'BarlowCondensed',
+            fontSize: 22,
+            height: 26 / 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.white,
+            letterSpacing: 0.5,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -90,22 +107,16 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
   }
 
   Widget _buildBody(DashboardProvider dash) {
+    // Skeleton mengikuti bentuk konten (desain.md 10: skeleton, bukan
+    // spinner layar penuh).
     if (dash.isLoading && dash.stats == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const _DashboardSkeleton();
     }
 
     if (dash.hasError && dash.stats == null && dash.charts == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 56, color: Colors.red),
-            const SizedBox(height: 12),
-            const Text('Gagal memuat dashboard'),
-            const SizedBox(height: 12),
-            ElevatedButton(onPressed: _refresh, child: const Text('Coba Lagi')),
-          ],
-        ),
+      return ErrorState(
+        message: 'Gagal memuat dashboard.',
+        onRetry: _refresh,
       );
     }
 
@@ -117,13 +128,23 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Banner status gym non-aktif (desain.md 3.4 & 9).
+          if (widget.gym.gymStatus != null &&
+              widget.gym.gymStatus != 'Active') ...[
+            GymBanner(
+              status: widget.gym.gymStatus!,
+              onRetry: _refresh,
+            ),
+            const SizedBox(height: 12),
+          ],
           // Waktu pembaruan terakhir (PRD 15).
           if (stats != null && stats.generatedAt.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 'Diperbarui: ${stats.generatedAt.substring(0, 19).replaceAll("T", " ")} UTC',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.gray500),
               ),
             ),
 
@@ -143,37 +164,31 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                   icon: Icons.people,
                   label: 'Total Anggota',
                   value: stats.totalMembers,
-                  color: Colors.blue,
                 ),
                 _StatCard(
                   icon: Icons.verified_user,
                   label: 'Anggota Aktif',
                   value: stats.activeMembers,
-                  color: Colors.green,
                 ),
                 _StatCard(
                   icon: Icons.event_available,
                   label: 'Booking Hari Ini',
                   value: stats.bookingsToday,
-                  color: Colors.orange,
                 ),
                 _StatCard(
                   icon: Icons.upcoming,
                   label: 'Booking Mendatang',
                   value: stats.upcomingBookings,
-                  color: Colors.teal,
                 ),
                 _StatCard(
                   icon: Icons.login,
                   label: 'Kehadiran Hari Ini',
                   value: stats.attendanceToday,
-                  color: Colors.purple,
                 ),
                 _StatCard(
                   icon: Icons.event_busy,
                   label: 'Booking Dibatalkan',
                   value: stats.cancelledBookings,
-                  color: Colors.red,
                 ),
               ],
             ),
@@ -185,7 +200,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
           ] else ...[
             const SizedBox(height: 16),
 
-            // --- Tren booking (PRD 8.1). ---
+            // --- Tren booking (PRD 8.1): hitam, titik tertinggi merah. ---
             _ChartCard(
               title: 'Tren Booking',
               subtitle: _rangeLabel(charts),
@@ -193,7 +208,6 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                 data: charts.bookingTrend
                     .map((p) => _BarPoint(p.date.substring(5), p.count))
                     .toList(),
-                color: Colors.indigo,
               ),
             ),
             const SizedBox(height: 12),
@@ -206,7 +220,6 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                 data: charts.attendanceTrend
                     .map((p) => _BarPoint(p.date.substring(5), p.count))
                     .toList(),
-                color: Colors.purple,
               ),
             ),
             const SizedBox(height: 12),
@@ -219,7 +232,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // --- Fasilitas populer. ---
+            // --- Fasilitas populer: hitam dengan nomor peringkat. ---
             _ChartCard(
               title: 'Fasilitas Populer',
               subtitle: _rangeLabel(charts),
@@ -231,12 +244,11 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                               e['facility'] as String? ?? '-',
                               (e['count'] as num?)?.toInt() ?? 0))
                           .toList(),
-                      color: Colors.teal,
                     ),
             ),
             const SizedBox(height: 12),
 
-            // --- Jam ramai. ---
+            // --- Jam ramai: bar tertinggi merah (desain.md 9). ---
             _ChartCard(
               title: 'Jam Ramai',
               subtitle: _rangeLabel(charts),
@@ -248,7 +260,6 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                               (e['hour'] as String? ?? '-').substring(0, 2),
                               (e['count'] as num?)?.toInt() ?? 0))
                           .toList(),
-                      color: Colors.orange,
                     ),
             ),
           ],
@@ -321,49 +332,57 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final int value;
-  final MaterialColor color;
 
   const _StatCard({
     required this.icon,
     required this.label,
     required this.value,
-    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+    // Angka display Barlow Condensed, label kecil, ikon kanan atas
+    // (desain.md 6.2 kartu statistik).
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 16 / 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.gray500,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
+              Icon(icon, size: 16, color: AppColors.gray500),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            '$value',
+            style: const TextStyle(
+              fontFamily: 'BarlowCondensed',
+              fontSize: 34,
+              height: 38 / 34,
+              fontWeight: FontWeight.bold,
+              color: AppColors.black,
             ),
-            const SizedBox(height: 8),
-            Text(
-              '$value',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -384,21 +403,35 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14)),
-            Text(subtitle,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-            const SizedBox(height: 12),
-            SizedBox(height: 130, width: double.infinity, child: child),
-          ],
-        ),
+    // Judul section Barlow Condensed SemiBold (desain.md 4 title-md).
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              fontFamily: 'BarlowCondensed',
+              fontSize: 18,
+              height: 22 / 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.black,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: AppColors.gray500),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(height: 130, width: double.infinity, child: child),
+        ],
       ),
     );
   }
@@ -415,9 +448,8 @@ class _BarPoint {
 
 class _BarChart extends StatelessWidget {
   final List<_BarPoint> data;
-  final Color color;
 
-  const _BarChart({required this.data, required this.color});
+  const _BarChart({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -434,7 +466,6 @@ class _BarChart extends StatelessWidget {
           child: CustomPaint(
             painter: _BarChartPainter(
               data: data,
-              color: color,
               maxValue: maxValue,
             ),
             size: Size.infinite,
@@ -452,7 +483,8 @@ class _BarChart extends StatelessWidget {
                     i % (data.length / 8).ceil() == 0)
                   Text(
                     data[i].label,
-                    style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
+                    style: const TextStyle(
+                        fontSize: 8, color: AppColors.gray500),
                   ),
             ],
           ),
@@ -462,14 +494,14 @@ class _BarChart extends StatelessWidget {
   }
 }
 
+/// Grafik batang hitam dengan SATU sorotan merah (nilai tertinggi)
+/// sesuai desain.md 9: "warna dasar hitam/abu, satu seri sorotan merah".
 class _BarChartPainter extends CustomPainter {
   final List<_BarPoint> data;
-  final Color color;
   final int maxValue;
 
   _BarChartPainter({
     required this.data,
-    required this.color,
     required this.maxValue,
   });
 
@@ -479,7 +511,9 @@ class _BarChartPainter extends CustomPainter {
 
     final barGap = 2.0;
     final barWidth = (size.width / data.length) - barGap;
-    final paint = Paint()..color = color;
+
+    final blackPaint = Paint()..color = AppColors.black;
+    final redPaint = Paint()..color = AppColors.red;
 
     for (var i = 0; i < data.length; i++) {
       final h = data[i].value / maxValue * (size.height - 8);
@@ -490,6 +524,8 @@ class _BarChartPainter extends CustomPainter {
         barWidth < 2 ? 2 : barWidth,
         h,
       );
+      // Nilai tertinggi = merah; sisanya hitam.
+      final paint = data[i].value == maxValue ? redPaint : blackPaint;
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(2)),
         paint,
@@ -499,16 +535,15 @@ class _BarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BarChartPainter oldDelegate) {
-    return oldDelegate.data != data || oldDelegate.color != color;
+    return oldDelegate.data != data;
   }
 }
 
-/// Bar horizontal berperingkat (fasilitas populer).
+/// Bar horizontal berperingkat: hitam di atas track abu (desain.md 9).
 class _RankedBars extends StatelessWidget {
   final List<MapEntry<String, int>> items;
-  final MaterialColor color;
 
-  const _RankedBars({required this.items, required this.color});
+  const _RankedBars({required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -522,8 +557,20 @@ class _RankedBars extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(
             children: [
+              // Nomor peringkat.
               SizedBox(
-                width: 90,
+                width: 18,
+                child: Text(
+                  '${i + 1}.',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gray700,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 84,
                 child: Text(
                   e.key,
                   style: const TextStyle(fontSize: 11),
@@ -536,7 +583,7 @@ class _RankedBars extends StatelessWidget {
                     Container(
                       height: 12,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: AppColors.gray200, // gray-200 track
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
@@ -545,7 +592,7 @@ class _RankedBars extends StatelessWidget {
                       child: Container(
                         height: 12,
                         decoration: BoxDecoration(
-                          color: color.shade300,
+                          color: AppColors.black, // isi hitam
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
@@ -564,7 +611,7 @@ class _RankedBars extends StatelessWidget {
   }
 }
 
-/// Rincian status booking (chips dengan jumlah).
+/// Rincian status booking: chip sesuai desain.md 3.4 (bukan warna bebas).
 class _StatusBreakdown extends StatelessWidget {
   final Map<String, int> statusCounts;
 
@@ -572,35 +619,28 @@ class _StatusBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const colors = {
-      'Pending': Colors.orange,
-      'Confirmed': Colors.green,
-      'Completed': Colors.blue,
-      'Cancelled': Colors.grey,
-      'Rejected': Colors.red,
-    };
-
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         for (final entry in statusCounts.entries)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: (colors[entry.key] ?? Colors.grey).shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: (colors[entry.key] ?? Colors.grey).shade200,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StatusChip(
+                label: entry.key,
+                style: StatusChip.styleFor(entry.key),
               ),
-            ),
-            child: Text(
-              '${entry.key}: ${entry.value}',
-              style: TextStyle(
-                fontSize: 12,
-                color: (colors[entry.key] ?? Colors.grey).shade700,
+              const SizedBox(width: 4),
+              Text(
+                '${entry.value}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.black,
+                ),
               ),
-            ),
+            ],
           ),
       ],
     );
@@ -612,11 +652,48 @@ class _EmptyChartHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text(
         'Belum ada data',
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+        style: TextStyle(fontSize: 12, color: AppColors.gray500),
       ),
+    );
+  }
+}
+
+/// Skeleton dashboard mengikuti bentuk konten (desain.md 10):
+/// 6 kotak kartu statistik + 2 blok grafik.
+class _DashboardSkeleton extends StatelessWidget {
+  const _DashboardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const SkeletonBox(height: 14, width: 160),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.6,
+          children: const [
+            SkeletonBox(height: 80),
+            SkeletonBox(height: 80),
+            SkeletonBox(height: 80),
+            SkeletonBox(height: 80),
+            SkeletonBox(height: 80),
+            SkeletonBox(height: 80),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const SkeletonBox(height: 160, radius: BorderRadius.all(Radius.circular(16))),
+        const SizedBox(height: 12),
+        const SkeletonBox(height: 160, radius: BorderRadius.all(Radius.circular(16))),
+      ],
     );
   }
 }

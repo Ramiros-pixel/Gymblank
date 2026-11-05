@@ -13,7 +13,8 @@ class AppSpacing {
   static const double radiusCard = 16;
   static const double radiusButton = 12;
   static const double radiusInput = 12;
-  static const double radiusChip = 10;
+  static const double radiusChip = 999;
+  static const double radiusBottomSheet = 24;
 
   // Ukuran area sentuh minimum (desain.md: 48 dp).
   static const double minTapTarget = 48;

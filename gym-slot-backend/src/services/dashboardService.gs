@@ -8,11 +8,53 @@
  * (fallback Asia/Jakarta). Tanggal disimpan/dibandingkan sebagai string
  * YYYY-MM-DD pada kolom schedule_date; timestamp ISO dibandingkan sebagai
  * tanggal lokal zona gym.
+ *
+ * CACHE (Phase 6): agregat dashboard di-cache di CacheService (TTL 60 detik)
+ * untuk melindungi kuota Sheets API. Kunci memakai "generation" per gym;
+ * DashboardService.invalidate(ssId) menaikkan generation sehingga semua
+ * key lama otomatis tak terpakai. Service operasional (booking, attendance,
+ * member, schedule, facility) memanggil invalidate setelah data berubah.
+ * generated_at tetap mencatat waktu agregasi — angka cache tidak
+ * ditampilkan seolah-olah dihitung baru.
  */
 
 var DashboardService = (function () {
   /** Status booking yang dihitung sebagai booking hari ini/mendatang. */
   var ACTIVE_STATUSES = ['Pending', 'Confirmed'];
+
+  var CACHE_TTL_SECONDS = 60;
+
+  /** Nomor generasi cache per gym (naik saat invalidate). */
+  function getGeneration(ssId) {
+    var g = CacheService.getScriptCache().get('dash:gen:' + ssId);
+    return g ? String(g) : '0';
+  }
+
+  function cacheGet(key) {
+    var raw = CacheService.getScriptCache().get(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function cachePut(key, value) {
+    CacheService.getScriptCache().put(key, JSON.stringify(value), CACHE_TTL_SECONDS);
+  }
+
+  /**
+   * Kosongkan cache dashboard gym. Dipanggil service operasional setelah
+   * ada perubahan data; key lama otomatis tidak terpakai karena generation
+   * naik (key baru berbeda).
+   */
+  function invalidate(ssId) {
+    var cache = CacheService.getScriptCache();
+    var current = cache.get('dash:gen:' + ssId);
+    var next = (current ? Number(current) : 0) + 1;
+    cache.put('dash:gen:' + ssId, String(next), 21600);
+  }
 
   /**
    * Ambil timezone gym dari Settings (fallback Asia/Jakarta).
@@ -71,6 +113,10 @@ var DashboardService = (function () {
    *   upcoming_bookings, attendance_today, cancelled_bookings, generated_at}
    */
   function getStats(ssId) {
+    var cacheKey = 'dash:' + getGeneration(ssId) + ':stats:' + ssId;
+    var cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
     var timezone = getGymTimezone(ssId);
     var today = todayString(timezone);
 
@@ -118,7 +164,7 @@ var DashboardService = (function () {
       }
     }
 
-    return {
+    var result = {
       total_members: totalMembers,
       active_members: activeMembers,
       bookings_today: bookingsToday,
@@ -127,6 +173,8 @@ var DashboardService = (function () {
       cancelled_bookings: cancelledBookings,
       generated_at: DateTimeHelper.nowIso(),
     };
+    cachePut(cacheKey, result);
+    return result;
   }
 
   /**
@@ -156,6 +204,11 @@ var DashboardService = (function () {
       // default 7 hari terakhir.
       start = daysAgoString(6, timezone); end = today;
     }
+
+    var cacheKey = 'dash:' + getGeneration(ssId) + ':charts:' + ssId +
+      ':' + (range || '7d') + ':' + (start || '') + ':' + (end || '');
+    var cached = cacheGet(cacheKey);
+    if (cached) return cached;
 
     var days = dateRange(start, end);
 
@@ -233,7 +286,7 @@ var DashboardService = (function () {
       return { hour: h + ':00', count: hourCounts[h] };
     });
 
-    return {
+    var charts = {
       range: range === 'custom' ? 'custom' : (range || '7d'),
       start_date: start,
       end_date: end,
@@ -244,10 +297,13 @@ var DashboardService = (function () {
       busy_hours: hourArr,
       generated_at: DateTimeHelper.nowIso(),
     };
+    cachePut(cacheKey, charts);
+    return charts;
   }
 
   return {
     getStats: getStats,
     getCharts: getCharts,
+    invalidate: invalidate,
   };
 })();

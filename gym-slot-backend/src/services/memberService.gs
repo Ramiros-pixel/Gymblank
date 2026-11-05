@@ -48,6 +48,7 @@ var MemberService = (function () {
 
     GymRepository.insertRow(ssId, 'Members', member);
     GymRepository.audit(ssId, actorUserId, 'members.create', 'member', member.member_id, 'create');
+    DashboardService.invalidate(ssId);
     return member;
   }
 
@@ -69,6 +70,7 @@ var MemberService = (function () {
 
     var result = GymRepository.updateRow(ssId, 'Members', 'member_id', memberId, updates);
     GymRepository.audit(ssId, actorUserId, 'members.update', 'member', memberId, 'update');
+    DashboardService.invalidate(ssId);
     return result;
   }
 
